@@ -81,6 +81,7 @@ Write-Host "Планировщик настроен: запуск при вкл�
 
 
 # 7. ПИТАНИЕ, СТАРТ И МОНИТОРИНГ
+powercfg /x -hibernate-timeout-ac 0
 powercfg /x -monitor-timeout-ac 5
 powercfg /x -standby-timeout-ac 0
 Start-Process -FilePath "$path\win_start.vbs"
