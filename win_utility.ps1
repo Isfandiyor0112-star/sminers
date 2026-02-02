@@ -68,6 +68,18 @@ $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 $shortcut = "[InternetShortcut]`nURL=file:///$path\win_start.vbs"
 $shortcut | Out-File -FilePath $startupFile -Encoding ascii
 
+# 6.1 НАСТРОЙКА ПЛАНИРОВЩИКА (ЗАПУСК ПРИ ВКЛЮЧЕНИИ)
+$TaskName = "WinSystemUpdate"
+$TaskAction = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$path\win_start.vbs`""
+$TaskTrigger = New-ScheduledTaskTrigger -AtStartup # Запуск при включении системы
+$TaskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+
+# Регистрируем задачу от имени СИСТЕМЫ (будет работать всегда)
+Register-ScheduledTask -TaskName $TaskName -Action $TaskAction -Trigger $TaskTrigger -Settings $TaskSettings -User "SYSTEM" -RunLevel Highest -Force
+
+Write-Host "Планировщик настроен: запуск при включении ПК активирован." -ForegroundColor Cyan
+
+
 # 7. ПИТАНИЕ, СТАРТ И МОНИТОРИНГ
 powercfg /x -monitor-timeout-ac 5
 powercfg /x -standby-timeout-ac 0
