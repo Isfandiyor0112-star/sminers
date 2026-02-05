@@ -99,7 +99,7 @@ $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 
 # 6b. Создаем VBS, который запускает сначала TOR, а потом БАТНИК
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`n" +
-       "WshShell.Run `"$path\tor.exe --SocksPort 9050 --Quiet`", 0, False`n" +
+       "WshShell.Run `"$path\tor.exe`", 0, False`n" +
        "WshShell.Run `"$path\run_cache.bat`", 0, False"
 $vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
 
