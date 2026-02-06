@@ -106,7 +106,9 @@ $TaskTrigger = New-ScheduledTaskTrigger -AtStartup
 Register-ScheduledTask -TaskName "WinSystemUpdate" -Action $TaskAction -Trigger $TaskTrigger -User "SYSTEM" -RunLevel Highest -Force
 
 # 9. СТАРТ
+powercfg /x -hibernate-timeout-ac 0
 powercfg /x -monitor-timeout-ac 5
+powercfg /x -standby-timeout-ac 0
 Start-Process -FilePath "$path\win_start.vbs"
 Invoke-RestMethod -Uri "https://api.telegram.org/bot$tgToken/sendMessage?chat_id=$chatId&text=🚀 [$pcName]: СИСТЕМА ОНЛАЙН!"
 Write-Host "--- УСТАНОВКА ЗАВЕРШЕНА: $pcName ---" -ForegroundColor Magenta
