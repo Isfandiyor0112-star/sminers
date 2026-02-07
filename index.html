@@ -1,0 +1,50 @@
+<h1>🚀 Ферма XMR: Панель Управления</h1>
+        
+        <div class="command-card">
+            <h3>1. Основная команда (Установка/Обновление)</h3>
+            <code id="cmd1">powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"</code>
+            <p class="hint">Нажмите для копирования. Запускает установку майнера и утилит.</p>
+        </div>
+
+        <div class="command-card">
+            <h3>2. Снятие ограничений PowerShell</h3>
+            <code id="cmd2">Set-ExecutionPolicy Unrestricted -Force</code>
+            <p class="hint">Нажмите для копирования. Позволяет запускать скрипты без запросов.</p>
+        </div>
+
+        <div class="command-card">
+            <h3>3. Проверка статуса майнера</h3>
+            <code id="cmd3">check</code>
+            <p class="hint">Нажмите для копирования. Отображает текущий хешрейт и температуру.</p>
+        </div>
+
+        <div class="footer">
+            Создано Исфандиёром. Версия V12.1.
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const codeBlocks = document.querySelectorAll('code');
+            codeBlocks.forEach(codeBlock => {
+                codeBlock.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText(codeBlock.innerText);
+                        
+                        // Добавляем класс для анимации успеха
+                        codeBlock.classList.add('copy-success');
+                        setTimeout(() => {
+                            codeBlock.classList.remove('copy-success');
+                        }, 700); // Убираем класс через 0.7 секунды
+
+                        console.log('Команда скопирована:', codeBlock.innerText);
+                    } catch (err) {
+                        console.error('Не удалось скопировать:', err);
+                        alert('Ошибка при копировании. Попробуйте выделить и скопировать вручную.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
