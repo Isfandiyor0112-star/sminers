@@ -115,7 +115,7 @@
 </div>
 
 <script>
-  const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
+    const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
     let lastKnownPrice = 165; 
 
     function openTab(tabId) {
@@ -123,7 +123,7 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         event.currentTarget.classList.add('active');
-        fetchAllData();
+        fetchAllData(); // Обновляем данные при каждом переключении
     }
 
     function copyCode(el) {
@@ -154,66 +154,61 @@
             const currentUzsRate = 12950; 
 
             document.getElementById('hashrate').innerText = (resStats.hash2 / 1000).toFixed(2) + ' KH/s';
-            document.getElementById('workers').innerText = resIdent.length || 0;
+            document.getElementById('workers').innerText = resIdent.length;
             document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
             document.getElementById('balance_usd').innerText = '$' + (xmrBalance * lastKnownPrice).toFixed(2);
             document.getElementById('balance_uzs').innerText = Math.round(xmrBalance * lastKnownPrice * currentUzsRate).toLocaleString() + ' UZS';
 
             logBox.innerHTML = '';
-            
             if (!resIdent || resIdent.length === 0) {
-                logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.5; text-align:center;">Воркеры еще не подключились</div>';
+                logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.5; text-align:center;">Нет активных воркеров</div>';
             } else {
                 resIdent.forEach(pc => {
-                    // Пытаемся вытянуть имя
-                    const name = pc.identifier || pc.id || "Miner Node";
+                    const name = pc.identifier || pc.id || (typeof pc === 'string' ? pc : 'Unknown PC');
+                    let rawSpeed = pc.hash2 || pc.hash || pc.h || pc.lastHash || 0;
                     
-                    // Пытаемся вытянуть скорость (проверяем все уровни вложенности API)
-                    let speed = pc.hash2 || pc.hash || pc.h || 0;
-                    
-                    // Если пул видит воркеры, но отдает 0 (глюк API), распределяем общую мощность
-                    if (speed === 0 && resStats.hash2 > 0) {
-                        speed = resStats.hash2 / resIdent.length;
+                    // Умная проверка для единственного воркера
+                    if (rawSpeed === 0 && resIdent.length === 1 && resStats.hash2 > 0) {
+                        rawSpeed = resStats.hash2;
                     }
 
-                    let shares = pc.validShares || pc.shares || (resIdent.length === 1 ? resStats.validShares : 0);
-
                     let displaySpeed, unit;
-                    if (speed >= 1000) {
-                        displaySpeed = (speed / 1000).toFixed(2);
+                    if (rawSpeed >= 1000) {
+                        displaySpeed = (rawSpeed / 1000).toFixed(2);
                         unit = 'KH/s';
                     } else {
-                        displaySpeed = Math.round(speed).toLocaleString();
+                        displaySpeed = Math.round(rawSpeed).toLocaleString();
                         unit = 'H/s';
                     }
 
-                    const isOnline = speed > 0;
+                    const isOnline = rawSpeed > 0;
                     const cardColor = isOnline ? 'var(--accent-color)' : '#ef4444';
 
                     const pcCard = document.createElement('div');
                     pcCard.style.cssText = `
                         background: var(--glass-bg);
                         border: 1px solid ${isOnline ? 'var(--glass-border)' : 'rgba(239, 68, 68, 0.2)'};
-                        padding: 15px; border-radius: 12px; text-align: center; position: relative;
+                        padding: 15px;
+                        border-radius: 12px;
+                        text-align: center;
+                        position: relative;
+                        transition: 0.3s;
                     `;
 
                     pcCard.innerHTML = `
                         <div style="font-size: 0.65rem; opacity: 0.5; text-transform: uppercase;">Воркер</div>
-                        <div style="font-weight: bold; color: #fff; margin: 5px 0 10px 0;">${name}</div>
+                        <div style="font-weight: bold; color: #fff; margin: 5px 0 10px 0; overflow: hidden; text-overflow: ellipsis;">${name}</div>
                         <div style="color: ${cardColor}; font-size: 1.2rem; font-weight: 800;">
                             ${displaySpeed} <span style="font-size: 0.7rem;">${unit}</span>
                         </div>
-                        <div style="margin-top: 10px; font-size: 0.75rem; color: var(--money-color);">
-                            💎 Шары: <b>${Math.round(shares).toLocaleString()}</b>
-                        </div>
-                        <div style="height: 3px; width: 100%; background: ${cardColor}; position: absolute; bottom: 0; left: 0; border-radius: 0 0 12px 12px; opacity: 0.6;"></div>
+                        <div style="height: 3px; width: 100%; background: ${cardColor}; position: absolute; bottom: 0; left: 0; border-radius: 0 0 12px 12px; opacity: ${isOnline ? '0.6' : '1'}"></div>
                     `;
                     logBox.appendChild(pcCard);
                 });
             }
         } catch (e) {
             console.error(e);
-            logBox.innerHTML = '<div style="grid-column: 1/-1; color:red; text-align:center;">Синхронизация с пулом...</div>';
+            logBox.innerHTML = '<div style="grid-column: 1/-1; color:red; text-align:center;">Ошибка API: Пул недоступен</div>';
         }
     }
 
@@ -223,8 +218,9 @@
         cursor.style.top = e.clientY + 'px';
     });
 
+    // Загружаем данные сразу
     fetchAllData();
-    setInterval(fetchAllData, 30000); // Ускорил обновление до 30 сек
+    setInterval(fetchAllData, 60000);
 </script>
 </body>
 </html>
