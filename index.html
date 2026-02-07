@@ -152,44 +152,57 @@
         setTimeout(() => el.classList.remove('copy-success'), 600);
     }
 
-    async function fetchAllData() {
-        const logBox = document.getElementById('logBox');
-        try {
-            // 1. Данные майнинга
-            const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats`);
-            const stats = await resStats.json();
-            
-            const resWork = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers`);
-            const workers = await resWork.json();
+async function fetchAllData() {
+    const logBox = document.getElementById('logBox');
+    try {
+        // 1. Данные майнинга (статистика аккаунта)
+        const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats`);
+        const stats = await resStats.json();
+        
+        // 2. Данные по воркерам (конкретные ПК)
+        const resWork = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/workers`);
+        const workers = await resWork.json();
 
-            // 2. Курс валют (XMR -> USD)
-            const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
-            const priceData = await resPrice.json();
-            const xmrToUsd = priceData.monero.usd;
+        // 3. Курс валют
+        const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
+        const priceData = await resPrice.json();
+        const xmrToUsd = priceData.monero.usd;
 
-            // 3. Курс USD -> UZS (Приблизительный или статический для скорости, тут 12900)
-            const usdToUzs = 12950; 
+        const usdToUzs = 12950; 
 
-            const xmrBalance = stats.amtDue / 1000000000000;
-            const usdBalance = xmrBalance * xmrToUsd;
-            const uzsBalance = usdBalance * usdToUzs;
+        const xmrBalance = stats.amtDue / 1000000000000;
+        const usdBalance = xmrBalance * xmrToUsd;
+        const uzsBalance = usdBalance * usdToUzs;
 
-            // Обновление UI
-            document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
-            document.getElementById('workers').innerText = workers.length;
-            document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
-            document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
-            document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
+        // Обновление верхних карточек
+        document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
+        document.getElementById('workers').innerText = workers.length;
+        document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
+        document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
+        document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
 
-            logBox.innerHTML = workers.length ? '' : 'Нет активных воркеров';
+        // Рендерим список воркеров правильно
+        logBox.innerHTML = ''; 
+        if (!workers || workers.length === 0) {
+            logBox.innerHTML = '<div class="log-line">Нет активных воркеров</div>';
+        } else {
             workers.forEach(w => {
-                logBox.innerHTML += `<div style="margin-bottom:8px">> ПК: <span style="color:#fff">${w.identifier}</span> — <span style="color:var(--accent-color)">${Math.round(w.hash2)} H/s</span></div>`;
+                // MoneroOcean API использует 'id' для имени и 'hash' или 'hash2' для скорости
+                const name = w.id || 'Unknown PC';
+                const hashrate = w.hash2 ? Math.round(w.hash2) : 0;
+                
+                const line = document.createElement('div');
+                line.style.marginBottom = '8px';
+                line.innerHTML = `> ПК: <span style="color:#fff">${name}</span> — <span style="color:var(--accent-color)">${hashrate} H/s</span>`;
+                logBox.appendChild(line);
             });
-
-        } catch (e) {
-            logBox.innerHTML = '<span style="color:red">Ошибка загрузки данных. Проверьте соединение.</span>';
         }
+
+    } catch (e) {
+        console.error(e);
+        logBox.innerHTML = '<span style="color:red">Ошибка API: Проверьте консоль браузера</span>';
     }
+}
 
     // Курсор
     const cursor = document.querySelector('.glass-cursor');
