@@ -128,56 +128,66 @@
 
 async function fetchAllData() {
     const logBox = document.getElementById('logBox');
-    // Добавляем timestamp, чтобы избежать кэширования (Status 304)
     const ts = new Date().getTime(); 
 
     try {
-        // 1. Общая статистика
+        // 1. Общая статистика (Баланс и общая мощность)
         const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`);
         const stats = await resStats.json();
         
-        // 2. Идентификаторы воркеров
+        // 2. Идентификаторы (Список конкретных ПК)
         const resIdent = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`);
         const identifiers = await resIdent.json();
 
-        // 3. Курс XMR
+        // 3. Курс XMR через CoinGecko
         const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
         const priceData = await resPrice.json();
         const xmrPrice = priceData.monero.usd;
 
+        // Расчеты для Узбекистана
         const xmrBalance = stats.amtDue / 1000000000000;
         const usdBalance = xmrBalance * xmrPrice;
-        const uzsBalance = usdBalance * 12950; 
+        const uzsBalance = usdBalance * 12950; // Актуальный курс сума
 
-        // Обновляем UI
+        // Обновляем верхние индикаторы
         document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
         document.getElementById('workers').innerText = identifiers.length;
         document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
         document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
         document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
 
-        // Исправленный рендер списка ПК
+        // Рендерим список ПК
         logBox.innerHTML = '';
-        if (identifiers.length === 0) {
-            logBox.innerHTML = 'Нет активных ПК';
+        if (!identifiers || identifiers.length === 0) {
+            logBox.innerHTML = '<div style="opacity:0.5">Нет активных ПК в сети...</div>';
         } else {
             identifiers.forEach(pc => {
-                // ВАЖНО: Пул использует 'id' вместо 'identifier' в этом массиве
-                const name = pc.id || 'Безымянный ПК';
-                // Используем hash2 (эффективный хешрейт) или 0
-                const speed = pc.hash2 ? Math.round(pc.hash2) : 0;
+                // ПРОВЕРКА КЛЮЧЕЙ: Пробуем все варианты, которые использует MoneroOcean
+                const name = pc.identifier || pc.id || pc.name || 'Безымянный ПК';
                 
+                // Берем хешрейт (hash2 - это эффективный, h - текущий)
+                const speedRaw = pc.hash2 || pc.h || pc.hash || 0;
+                const speed = Math.round(speedRaw);
+                
+                // Цвет статуса: если скорость > 0, значит онлайн
+                const statusColor = speed > 0 ? '#4ade80' : '#ff4444';
+
                 const line = document.createElement('div');
-                line.style.marginBottom = '8px';
-                line.innerHTML = `> ПК: <span style="color:#fff; font-weight:bold">${name}</span> — <span style="color:var(--accent-color)">${speed} H/s</span>`;
+                line.style.cssText = "margin-bottom: 10px; padding: 5px; border-bottom: 1px solid rgba(255,255,255,0.05);";
+                line.innerHTML = `
+                    <span style="color:${statusColor}">●</span> 
+                    ПК: <span style="color:#fff; font-weight:bold">${name}</span> 
+                    — <span style="color:var(--accent-color)">${speed} H/s</span>
+                `;
                 logBox.appendChild(line);
             });
         }
     } catch (e) {
-        console.error("Ошибка:", e);
-        logBox.innerHTML = '<span style="color:#ef4444">Ошибка API. Проверьте консоль браузера.</span>';
+        console.error("Критическая ошибка Dashboard:", e);
+        logBox.innerHTML = '<span style="color:#ef4444">Ошибка связи с пулом. Проверьте Wallet.</span>';
     }
 }
+
     // Курсор
     const cursor = document.querySelector('.glass-cursor');
     document.addEventListener('mousemove', e => {
