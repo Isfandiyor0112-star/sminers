@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XMR Farm: Pro Dashboard v12.9</title>
+    <title>XMR Farm: Pro Dashboard v13.1</title>
     <style>
         :root {
             --bg-color: #0b0f1a;
@@ -16,7 +16,7 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', sans-serif; min-height: 100vh; overflow-x: hidden; }
 
         .nav-tabs {
             display: flex; justify-content: center; gap: 15px; padding: 25px 0;
@@ -55,7 +55,12 @@
         }
         .copy-success { border-color: var(--money-color) !important; color: var(--money-color) !important; }
 
-        .log-container { background: #000; border-radius: 8px; min-height: 200px; padding: 10px; border: 1px solid #222; }
+        .log-container { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+            gap: 15px; 
+            padding: 10px; 
+        }
 
         .glass-cursor { 
             position: fixed; width: 30px; height: 30px; background: rgba(255,255,255,0.1); 
@@ -94,23 +99,24 @@
             <div class="stat-card"><span>Воркеры</span><b id="workers">0</b></div>
             <div class="stat-card"><span>Баланс XMR</span><b id="balance_xmr">0.000000</b></div>
             <div class="stat-card">
-                <span>Прибыль</span>
+                <span>Прибыль (UZB)</span>
                 <b id="balance_usd">$0.00</b>
                 <b id="balance_uzs">0 UZS</b>
             </div>
         </div>
 
         <div class="command-card">
-            <h3 style="color: var(--accent-color); margin-bottom: 15px;">Статус воркеров</h3>
+            <h3 style="color: var(--accent-color); margin-bottom: 15px;">Мощность по каждому ПК</h3>
             <div id="logBox" class="log-container">Загрузка данных...</div>
         </div>
     </section>
 
-    <div class="footer">Wallet: 429bPn... | Uzbekistan | v12.9</div>
+    <div class="footer">Wallet: 429bPn... | Uzbekistan | v13.1</div>
 </div>
 
 <script>
     const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
+    let lastKnownPrice = 165; 
 
     function openTab(tabId) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -126,79 +132,80 @@
         setTimeout(() => el.classList.remove('copy-success'), 600);
     }
 
-  let lastKnownPrice = 170; // Запасная цена на случай полной блокировки
+    async function fetchAllData() {
+        const logBox = document.getElementById('logBox');
+        const ts = new Date().getTime(); 
 
-async function fetchAllData() {
-    const logBox = document.getElementById('logBox');
-    const ts = new Date().getTime(); 
-
-    try {
-        // 1. Загружаем данные пула (они стабильнее)
-        const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`);
-        const stats = await resStats.json();
-        
-        const resIdent = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`);
-        const identifiers = await resIdent.json();
-
-        // 2. Пробуем получить курс XMR (с обработкой ошибки 429)
         try {
-            const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
-            if (resPrice.ok) {
-                const priceData = await resPrice.json();
-                lastKnownPrice = priceData.monero.usd;
-            } else if (stats.price) {
-                // Если CoinGecko спит, берем цену из статистики пула (если она там есть)
-                lastKnownPrice = stats.price;
+            const [resStats, resIdent] = await Promise.all([
+                fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`).then(r => r.json()),
+                fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`).then(r => r.json())
+            ]);
+
+            try {
+                const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
+                if (resPrice.ok) {
+                    const priceData = await resPrice.json();
+                    lastKnownPrice = priceData.monero.usd;
+                }
+            } catch (e) { console.warn("Используем кэшированный курс"); }
+
+            // Исправленные переменные
+            const xmrBalance = resStats.amtDue / 1000000000000;
+            const currentUzsRate = 12950; 
+
+            document.getElementById('hashrate').innerText = (resStats.hash2 / 1000).toFixed(2) + ' KH/s';
+            document.getElementById('workers').innerText = resIdent.length;
+            document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
+            document.getElementById('balance_usd').innerText = '$' + (xmrBalance * lastKnownPrice).toFixed(2);
+            document.getElementById('balance_uzs').innerText = Math.round(xmrBalance * lastKnownPrice * currentUzsRate).toLocaleString() + ' UZS';
+
+            logBox.innerHTML = '';
+            if (!resIdent || resIdent.length === 0) {
+                logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.5; text-align:center;">Нет активных воркеров</div>';
+            } else {
+                resIdent.forEach(pc => {
+                    const name = pc.identifier || pc.id || (typeof pc === 'string' ? pc : 'Unknown PC');
+                    const rawSpeed = pc.hash2 || pc.h || 0;
+                    
+                    let displaySpeed = rawSpeed >= 1000 ? (rawSpeed / 1000).toFixed(2) : Math.round(rawSpeed);
+                    let unit = rawSpeed >= 1000 ? 'KH/s' : 'H/s';
+
+                    const pcCard = document.createElement('div');
+                    pcCard.style.cssText = `
+                        background: var(--glass-bg);
+                        border: 1px solid ${rawSpeed > 0 ? 'var(--glass-border)' : 'rgba(239, 68, 68, 0.3)'};
+                        padding: 15px;
+                        border-radius: 12px;
+                        text-align: center;
+                        position: relative;
+                    `;
+
+                    pcCard.innerHTML = `
+                        <div style="font-size: 0.65rem; opacity: 0.5; text-transform: uppercase;">Воркер</div>
+                        <div style="font-weight: bold; color: #fff; margin: 5px 0 10px 0;">${name}</div>
+                        <div style="color: ${rawSpeed > 0 ? 'var(--accent-color)' : '#ef4444'}; font-size: 1.2rem; font-weight: 800;">
+                            ${displaySpeed} <span style="font-size: 0.7rem;">${unit}</span>
+                        </div>
+                        <div style="height: 3px; width: 100%; background: ${rawSpeed > 0 ? 'var(--accent-color)' : '#ef4444'}; position: absolute; bottom: 0; left: 0; border-radius: 0 0 12px 12px;"></div>
+                    `;
+                    logBox.appendChild(pcCard);
+                });
             }
         } catch (e) {
-            console.warn("CoinGecko недоступен, используем резервную цену");
+            console.error(e);
+            logBox.innerHTML = '<div style="grid-column: 1/-1; color:red; text-align:center;">Ошибка API: Пул недоступен</div>';
         }
-
-        // Расчеты
-        const xmrBalance = stats.amtDue / 1000000000000;
-        const usdBalance = xmrBalance * lastKnownPrice;
-        const uzsBalance = usdBalance * 12950; 
-
-        // Обновляем UI
-        document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
-        document.getElementById('workers').innerText = identifiers.length;
-        document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
-        document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
-        document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
-
-        // Список воркеров с H/s и KH/s
-        logBox.innerHTML = '';
-        if (!identifiers || identifiers.length === 0) {
-            logBox.innerHTML = '<div style="opacity:0.5; padding:10px;">Нет активных ПК...</div>';
-        } else {
-            identifiers.forEach(pc => {
-                let name, speedText;
-                if (typeof pc === 'string') {
-                    name = pc;
-                    speedText = 'Active';
-                } else {
-                    name = pc.identifier || pc.id || 'Unknown PC';
-                    const speedRaw = pc.hash2 || pc.h || 0;
-                    speedText = speedRaw >= 1000 ? (speedRaw / 1000).toFixed(2) + ' KH/s' : Math.round(speedRaw) + ' H/s';
-                }
-                
-                const line = document.createElement('div');
-                line.style.cssText = "margin-bottom: 8px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 3px solid var(--accent-color); display:flex; justify-content:space-between; align-items:center;";
-                line.innerHTML = `<b>${name}</b> <span style="color:var(--accent-color); font-family:monospace; font-weight:bold;">${speedText}</span>`;
-                logBox.appendChild(line);
-            });
-        }
-    } catch (e) {
-        console.error("Критическая ошибка:", e);
-        logBox.innerHTML = '<div style="color:#ef4444; padding:10px;">Ошибка связи с пулом</div>';
     }
-}
+
     const cursor = document.querySelector('.glass-cursor');
     document.addEventListener('mousemove', e => {
         cursor.style.left = e.clientX + 'px';
         cursor.style.top = e.clientY + 'px';
     });
 
+    // Запуск при загрузке
+    window.onload = () => { if(document.getElementById('dashboard').classList.contains('active')) fetchAllData(); };
     setInterval(() => { if(document.getElementById('dashboard').classList.contains('active')) fetchAllData(); }, 60000);
 </script>
 </body>
