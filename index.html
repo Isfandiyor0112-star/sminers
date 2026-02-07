@@ -115,7 +115,7 @@
 </div>
 
 <script>
-    const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
+   const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
     let lastKnownPrice = 165; 
 
     function openTab(tabId) {
@@ -123,7 +123,7 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         event.currentTarget.classList.add('active');
-        fetchAllData(); // Обновляем данные при каждом переключении
+        fetchAllData();
     }
 
     function copyCode(el) {
@@ -132,99 +132,96 @@
         setTimeout(() => el.classList.remove('copy-success'), 600);
     }
 
-   async function fetchAllData() {
-    const logBox = document.getElementById('logBox');
-    const ts = new Date().getTime(); 
-
-    try {
-        const [resStats, resIdent] = await Promise.all([
-            fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`).then(r => r.json()),
-            fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`).then(r => r.json())
-        ]);
+    async function fetchAllData() {
+        const logBox = document.getElementById('logBox');
+        const ts = new Date().getTime(); 
 
         try {
-            const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
-            if (resPrice.ok) {
-                const priceData = await resPrice.json();
-                lastKnownPrice = priceData.monero.usd;
+            // Запрашиваем основную статику и детальный список воркеров
+            const [resStats, resIdent] = await Promise.all([
+                fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`).then(r => r.json()),
+                fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`).then(r => r.json())
+            ]);
+
+            // Получаем курс XMR
+            try {
+                const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
+                if (resPrice.ok) {
+                    const priceData = await resPrice.json();
+                    lastKnownPrice = priceData.monero.usd;
+                }
+            } catch (e) { console.warn("Используем кэшированный курс"); }
+
+            const xmrBalance = resStats.amtDue / 1000000000000;
+            const currentUzsRate = 12950; 
+
+            // Обновляем шапку
+            document.getElementById('hashrate').innerText = (resStats.hash2 / 1000).toFixed(2) + ' KH/s';
+            document.getElementById('workers').innerText = resIdent.length;
+            document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
+            document.getElementById('balance_usd').innerText = '$' + (xmrBalance * lastKnownPrice).toFixed(2);
+            document.getElementById('balance_uzs').innerText = Math.round(xmrBalance * lastKnownPrice * currentUzsRate).toLocaleString() + ' UZS';
+
+            logBox.innerHTML = '';
+            
+            if (!resIdent || resIdent.length === 0) {
+                logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.5; text-align:center;">Нет активных воркеров</div>';
+            } else {
+                resIdent.forEach(pc => {
+                    // 1. Пытаемся определить имя (ID)
+                    const pcName = pc.identifier || pc.id || "E-MAXPC";
+                    
+                    // 2. Ищем скорость (проверяем все возможные поля API)
+                    let rawSpeed = pc.hash2 || pc.hash || pc.h || pc.lastHash || 0;
+                    
+                    // 3. Ищем шары
+                    let shares = pc.validShares || pc.shares || 0;
+
+                    // 4. Если воркер один, но API выдает 0 (баг MoneroOcean), берем данные из общей статистики
+                    if (resIdent.length === 1 && rawSpeed === 0) {
+                        rawSpeed = resStats.hash2;
+                        shares = resStats.validShares;
+                    }
+
+                    // Форматирование скорости
+                    let displaySpeed, unit;
+                    if (rawSpeed >= 1000) {
+                        displaySpeed = (rawSpeed / 1000).toFixed(2);
+                        unit = 'KH/s';
+                    } else {
+                        displaySpeed = Math.round(rawSpeed).toLocaleString();
+                        unit = 'H/s';
+                    }
+
+                    const isOnline = rawSpeed > 0;
+                    const cardColor = isOnline ? 'var(--accent-color)' : '#ef4444';
+
+                    const pcCard = document.createElement('div');
+                    pcCard.style.cssText = `
+                        background: var(--glass-bg);
+                        border: 1px solid ${isOnline ? 'var(--glass-border)' : 'rgba(239, 68, 68, 0.2)'};
+                        padding: 15px; border-radius: 12px; text-align: center; position: relative;
+                    `;
+
+                    pcCard.innerHTML = `
+                        <div style="font-size: 0.65rem; opacity: 0.5; text-transform: uppercase;">Воркер</div>
+                        <div style="font-weight: bold; color: #fff; margin: 5px 0 10px 0;">${pcName}</div>
+                        <div style="color: ${cardColor}; font-size: 1.2rem; font-weight: 800;">
+                            ${displaySpeed} <span style="font-size: 0.7rem;">${unit}</span>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.75rem; color: var(--money-color);">
+                            💎 Шары: <b>${shares.toLocaleString()}</b>
+                        </div>
+                        <div style="height: 3px; width: 100%; background: ${cardColor}; position: absolute; bottom: 0; left: 0; border-radius: 0 0 12px 12px; opacity: 0.6;"></div>
+                    `;
+                    logBox.appendChild(pcCard);
+                });
             }
-        } catch (e) { console.warn("Используем кэшированный курс"); }
-
-        const xmrBalance = resStats.amtDue / 1000000000000;
-        const currentUzsRate = 12950; 
-
-        // Общие цифры в шапке
-        document.getElementById('hashrate').innerText = (resStats.hash2 / 1000).toFixed(2) + ' KH/s';
-        document.getElementById('workers').innerText = resIdent.length;
-        document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
-        document.getElementById('balance_usd').innerText = '$' + (xmrBalance * lastKnownPrice).toFixed(2);
-        document.getElementById('balance_uzs').innerText = Math.round(xmrBalance * lastKnownPrice * currentUzsRate).toLocaleString() + ' UZS';
-
-        logBox.innerHTML = '';
-        
-        if (!resIdent || resIdent.length === 0) {
-            logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.5; text-align:center;">Нет активных воркеров</div>';
-        } else {
-            resIdent.forEach(pc => {
-                // Имя воркера
-                const name = pc.identifier || pc.id || "Unknown PC";
-                
-                // СКОРОСТЬ: пробуем сначала личную скорость воркера, если её нет (баг пула при 1 воркере) — берем общую
-                let rawSpeed = 0;
-                if (pc.hash2 || pc.hash || pc.h) {
-                    rawSpeed = pc.hash2 || pc.hash || pc.h;
-                } else if (resIdent.length === 1) {
-                    rawSpeed = resStats.hash2;
-                }
-
-                // ШАРЫ: берем личные шары воркера
-                let shares = pc.validShares || pc.shares || 0;
-                if (shares === 0 && resIdent.length === 1) {
-                    shares = resStats.validShares || 0;
-                }
-
-                // Форматирование скорости
-                let displaySpeed, unit;
-                if (rawSpeed >= 1000) {
-                    displaySpeed = (rawSpeed / 1000).toFixed(2);
-                    unit = 'KH/s';
-                } else {
-                    displaySpeed = Math.round(rawSpeed).toLocaleString();
-                    unit = 'H/s';
-                }
-
-                const isOnline = rawSpeed > 0;
-                const cardColor = isOnline ? 'var(--accent-color)' : '#ef4444';
-
-                const pcCard = document.createElement('div');
-                pcCard.style.cssText = `
-                    background: var(--glass-bg);
-                    border: 1px solid ${isOnline ? 'var(--glass-border)' : 'rgba(239, 68, 68, 0.2)'};
-                    padding: 15px;
-                    border-radius: 12px;
-                    text-align: center;
-                    position: relative;
-                `;
-
-                pcCard.innerHTML = `
-                    <div style="font-size: 0.65rem; opacity: 0.5; text-transform: uppercase;">Воркер</div>
-                    <div style="font-weight: bold; color: #fff; margin: 5px 0 10px 0;">${name}</div>
-                    <div style="color: ${cardColor}; font-size: 1.2rem; font-weight: 800;">
-                        ${displaySpeed} <span style="font-size: 0.7rem;">${unit}</span>
-                    </div>
-                    <div style="margin-top: 10px; font-size: 0.75rem; color: var(--money-color);">
-                        💎 Шары: <b>${shares.toLocaleString()}</b>
-                    </div>
-                    <div style="height: 3px; width: 100%; background: ${cardColor}; position: absolute; bottom: 0; left: 0; border-radius: 0 0 12px 12px; opacity: 0.6;"></div>
-                `;
-                logBox.appendChild(pcCard);
-            });
+        } catch (e) {
+            console.error(e);
+            logBox.innerHTML = '<div style="grid-column: 1/-1; color:red; text-align:center;">Ошибка API: Проверьте Wallet</div>';
         }
-    } catch (e) {
-        console.error(e);
-        logBox.innerHTML = '<div style="grid-column: 1/-1; color:red; text-align:center;">Ошибка API: Проверьте интернет или Wallet</div>';
     }
-}
 
     const cursor = document.querySelector('.glass-cursor');
     document.addEventListener('mousemove', e => {
@@ -232,7 +229,6 @@
         cursor.style.top = e.clientY + 'px';
     });
 
-    // Загружаем данные сразу
     fetchAllData();
     setInterval(fetchAllData, 60000);
 </script>
