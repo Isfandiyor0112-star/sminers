@@ -126,32 +126,51 @@
         setTimeout(() => el.classList.remove('copy-success'), 600);
     }
 
-    async function fetchAllData() {
-        const logBox = document.getElementById('logBox');
-        const ts = new Date().getTime(); 
+  let lastKnownPrice = 170; // Запасная цена на случай полной блокировки
 
+async function fetchAllData() {
+    const logBox = document.getElementById('logBox');
+    const ts = new Date().getTime(); 
+
+    try {
+        // 1. Загружаем данные пула (они стабильнее)
+        const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`);
+        const stats = await resStats.json();
+        
+        const resIdent = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`);
+        const identifiers = await resIdent.json();
+
+        // 2. Пробуем получить курс XMR (с обработкой ошибки 429)
         try {
-            const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`);
-            const stats = await resStats.json();
-            
-            const resIdent = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`);
-            const identifiers = await resIdent.json();
-
             const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
-            const priceData = await resPrice.json();
-            const xmrPrice = priceData.monero.usd;
+            if (resPrice.ok) {
+                const priceData = await resPrice.json();
+                lastKnownPrice = priceData.monero.usd;
+            } else if (stats.price) {
+                // Если CoinGecko спит, берем цену из статистики пула (если она там есть)
+                lastKnownPrice = stats.price;
+            }
+        } catch (e) {
+            console.warn("CoinGecko недоступен, используем резервную цену");
+        }
 
-            const xmrBalance = stats.amtDue / 1000000000000;
-            const usdBalance = xmrBalance * xmrPrice;
-            const uzsBalance = usdBalance * 12950; 
+        // Расчеты
+        const xmrBalance = stats.amtDue / 1000000000000;
+        const usdBalance = xmrBalance * lastKnownPrice;
+        const uzsBalance = usdBalance * 12950; 
 
-            document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
-            document.getElementById('workers').innerText = identifiers.length;
-            document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
-            document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
-            document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
+        // Обновляем UI
+        document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
+        document.getElementById('workers').innerText = identifiers.length;
+        document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
+        document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
+        document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
 
-            logBox.innerHTML = '';
+        // Список воркеров с H/s и KH/s
+        logBox.innerHTML = '';
+        if (!identifiers || identifiers.length === 0) {
+            logBox.innerHTML = '<div style="opacity:0.5; padding:10px;">Нет активных ПК...</div>';
+        } else {
             identifiers.forEach(pc => {
                 let name, speedText;
                 if (typeof pc === 'string') {
@@ -164,15 +183,16 @@
                 }
                 
                 const line = document.createElement('div');
-                line.style.cssText = "margin-bottom: 8px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 3px solid var(--accent-color); display:flex; justify-content:space-between;";
-                line.innerHTML = `<b>${name}</b> <span style="color:var(--accent-color); font-family:monospace;">${speedText}</span>`;
+                line.style.cssText = "margin-bottom: 8px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 3px solid var(--accent-color); display:flex; justify-content:space-between; align-items:center;";
+                line.innerHTML = `<b>${name}</b> <span style="color:var(--accent-color); font-family:monospace; font-weight:bold;">${speedText}</span>`;
                 logBox.appendChild(line);
             });
-        } catch (e) {
-            logBox.innerHTML = '<div style="color:red; padding:10px;">Ошибка загрузки API</div>';
         }
+    } catch (e) {
+        console.error("Критическая ошибка:", e);
+        logBox.innerHTML = '<div style="color:#ef4444; padding:10px;">Ошибка связи с пулом</div>';
     }
-
+}
     const cursor = document.querySelector('.glass-cursor');
     document.addEventListener('mousemove', e => {
         cursor.style.left = e.clientX + 'px';
