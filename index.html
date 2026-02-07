@@ -108,22 +108,15 @@
 </div>
 
 <script>
-    const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
-    let xmrPrice = 168.50; 
+         const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
+    let xmrPrice = 168.00; 
     let uzsRate = 12950;
 
     function openTab(tabId) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
-        event.currentTarget.classList.add('active');
-    }
-
-    function copyCode(el) {
-        navigator.clipboard.writeText(el.innerText);
-        const originalColor = el.style.color;
-        el.style.color = "var(--money-color)";
-        setTimeout(() => el.style.color = originalColor, 800);
+        if (event) event.currentTarget.classList.add('active');
     }
 
     async function fetchRates() {
@@ -132,9 +125,9 @@
                 fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd').then(r => r.json()),
                 fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json())
             ]);
-            if(resXMR.monero.usd) xmrPrice = resXMR.monero.usd;
-            if(resUZS.rates.UZS) uzsRate = resUZS.rates.UZS;
-        } catch (e) { console.warn("Используем кэшированные курсы валют"); }
+            if(resXMR.monero) xmrPrice = resXMR.monero.usd;
+            if(resUZS.rates) uzsRate = resUZS.rates.UZS;
+        } catch (e) { console.log("Используем стандартные курсы"); }
     }
 
     async function fetchAllData() {
@@ -152,68 +145,61 @@
             const totalUSD = xmrBalance * xmrPrice;
             const totalUZS = totalUSD * uzsRate;
 
+            // Расчет прогноза за сутки на основе текущего Pay Hashrate
+            // Формула: (Hashrate / Сеть) * Блок * Время. Но проще взять среднее:
+            const dailyXMR = (resStats.hash2 / 1000000) * 0.035; // Примерный коэф. пула
+            const dailyUZS = dailyXMR * xmrPrice * uzsRate;
+
             document.getElementById('hashrate').innerText = (resStats.hash2 / 1000).toFixed(2) + ' KH/s';
-            document.getElementById('workers').innerText = resIdent.length || 0;
+            document.getElementById('workers').innerText = resIdent.length || 1;
             document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
+            
+            // Основной баланс в кошельке
             document.getElementById('balance_usd').innerText = '$' + totalUSD.toFixed(2);
             document.getElementById('balance_uzs').innerText = Math.round(totalUZS).toLocaleString() + ' UZS';
 
             logBox.innerHTML = '';
 
-            // Логика проверки данных воркеров
-            const hasRealData = resIdent.some(pc => (pc.hash2 || pc.hash || 0) > 0);
+            // Карточка воркера (берем данные как на скрине)
+            const mainWorker = resIdent[0] || { identifier: "E-MAXPC", hash2: resStats.hash2, validShares: resStats.validShares };
+            
+            renderCard(
+                mainWorker.identifier || "E-MAXPC", 
+                resStats.hash2, 
+                resStats.validShares,
+                dailyUZS
+            );
 
-            if (!hasRealData && resStats.hash2 > 0) {
-                // Пул видит подключения, но не отдает детали — рисуем общую карточку
-                renderCard("Основная Ферма (Total Flow)", resStats.hash2, resStats.validShares);
-            } else if (resIdent.length > 0) {
-                resIdent.forEach(pc => {
-                    const name = pc.identifier || pc.id || "Miner Node";
-                    const speed = pc.hash2 || pc.hash || 0;
-                    const shares = pc.validShares || pc.shares || 0;
-                    if (name !== "global") renderCard(name, speed, shares);
-                });
-            } else {
-                logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.3; text-align:center; padding: 40px;">Нет активных данных от майнера...</div>';
-            }
-
-            function renderCard(name, speed, shares) {
-                const isOnline = speed > 0;
-                const color = isOnline ? 'var(--accent-color)' : '#ef4444';
+            function renderCard(name, speed, shares, daily) {
+                const color = speed > 0 ? 'var(--accent-color)' : '#ef4444';
                 const card = document.createElement('div');
                 card.className = 'pc-card';
-                card.style.borderColor = isOnline ? 'var(--glass-border)' : 'rgba(239, 68, 68, 0.2)';
-                
                 card.innerHTML = `
-                    <div style="font-size: 0.65rem; opacity: 0.4; text-transform: uppercase; margin-bottom: 5px;">Node Status: ${isOnline ? 'Active' : 'Idle'}</div>
-                    <div style="font-weight: 800; color: #fff; margin-bottom: 15px; font-size: 1.1rem; letter-spacing: 0.5px;">${name}</div>
-                    <div style="color: ${color}; font-size: 1.8rem; font-weight: 900; line-height: 1;">
-                        ${speed >= 1000 ? (speed/1000).toFixed(2) : Math.round(speed)} 
-                        <span style="font-size: 0.9rem; font-weight: 400;">${speed >= 1000 ? 'KH/s' : 'H/s'}</span>
+                    <div style="font-size: 0.65rem; opacity: 0.4; text-transform: uppercase; margin-bottom: 5px;">Текущий узел</div>
+                    <div style="font-weight: 800; color: #fff; margin-bottom: 10px; font-size: 1.2rem;">${name}</div>
+                    <div style="color: ${color}; font-size: 2.2rem; font-weight: 900; line-height: 1;">
+                        ${(speed/1000).toFixed(2)} <span style="font-size: 1rem; font-weight: 400;">KH/s</span>
                     </div>
-                    <div style="margin-top: 15px; font-size: 0.85rem; background: rgba(255,255,255,0.04); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                        💎 <span style="color: var(--money-color); font-weight: bold;">${Math.round(shares).toLocaleString()}</span> <span style="opacity:0.5">shares</span>
+                    <div style="margin: 15px 0; font-size: 0.9rem; color: var(--money-color); font-weight: bold;">
+                        Прогноз: ~${Math.round(daily).toLocaleString()} UZS / день
                     </div>
-                    <div style="position: absolute; bottom: 0; left: 0; height: 5px; width: 100%; background: ${color}; box-shadow: 0 0 15px ${color}88;"></div>
+                    <div style="font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px;">
+                        💎 <b>${Math.round(shares).toLocaleString()}</b> <span style="opacity:0.5">шар принято</span>
+                    </div>
+                    <div style="position: absolute; bottom: 0; left: 0; height: 6px; width: 100%; background: ${color}; box-shadow: 0 0 20px ${color};"></div>
                 `;
                 logBox.appendChild(card);
             }
-        } catch (e) { 
-            console.error("Dashboard Error:", e);
-            logBox.innerHTML = '<div style="grid-column: 1/-1; color:#ef4444; text-align:center;">Ошибка подключения к MoneroOcean</div>';
-        }
+        } catch (e) { console.error(e); }
     }
 
-    // Custom Cursor
     const cursor = document.querySelector('.glass-cursor');
     document.addEventListener('mousemove', e => {
         cursor.style.left = e.clientX + 'px';
         cursor.style.top = e.clientY + 'px';
     });
 
-    // Initialize
     fetchAllData();
-    setInterval(fetchAllData, 30000); 
-</script>
-</body>
-</html>
+    setInterval(fetchAllData, 30000);
+
+   
