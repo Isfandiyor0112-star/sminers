@@ -1,21 +1,165 @@
-<h1>🚀 Ферма XMR: Панель Управления</h1>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMR Farm Panel</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #38bdf8;
+            --text-color: #f1f5f9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none; /* Скрываем дефолтную мышь для эффекта стекла */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 90%;
+            padding: 40px;
+            z-index: 1;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            letter-spacing: -1px;
+            background: linear-gradient(90deg, #fff, var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Карточки с эффектом стекла */
+        .command-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .command-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-5px);
+        }
+
+        h3 {
+            color: var(--accent-color);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        code {
+            display: block;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            margin-bottom: 10px;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        code:hover {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Анимация при копировании */
+        .copy-success {
+            border-color: #4ade80 !important;
+            color: #4ade80 !important;
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
+        }
+
+        .hint {
+            font-size: 0.85rem;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.8rem;
+            opacity: 0.4;
+        }
+
+        /* КУРСОР ЖИДКОЕ СТЕКЛО */
+        .glass-cursor {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease-out, opacity 0.3s ease;
+            mix-blend-mode: lighten;
+        }
+
+        .glass-cursor.click {
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        @media (max-width: 600px) {
+            * { cursor: auto; }
+            .glass-cursor { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glass-cursor"></div>
+
+    <div class="container">
+        <h1>🚀 Ферма XMR: Панель Управления</h1>
         
         <div class="command-card">
             <h3>1. Основная команда (Установка/Обновление)</h3>
             <code id="cmd1">powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"</code>
-            <p class="hint">Нажмите для копирования. Запускает установку майнера и утилит.</p>
+            <p class="hint">Нажмите на код для копирования. Запускает полную установку.</p>
         </div>
 
         <div class="command-card">
             <h3>2. Снятие ограничений PowerShell</h3>
             <code id="cmd2">Set-ExecutionPolicy Unrestricted -Force</code>
-            <p class="hint">Нажмите для копирования. Позволяет запускать скрипты без запросов.</p>
+            <p class="hint">Разрешает запуск любых скриптов в системе.</p>
         </div>
 
         <div class="command-card">
             <h3>3. Проверка статуса майнера</h3>
             <code id="cmd3">check</code>
-            <p class="hint">Нажмите для копирования. Отображает текущий хешрейт и температуру.</p>
+            <p class="hint">Отображает текущий хешрейт и температуру CPU.</p>
         </div>
 
         <div class="footer">
@@ -24,27 +168,38 @@
     </div>
 
     <script>
+        // 1. Логика копирования
         document.addEventListener('DOMContentLoaded', () => {
             const codeBlocks = document.querySelectorAll('code');
             codeBlocks.forEach(codeBlock => {
                 codeBlock.addEventListener('click', async () => {
                     try {
                         await navigator.clipboard.writeText(codeBlock.innerText);
-                        
-                        // Добавляем класс для анимации успеха
                         codeBlock.classList.add('copy-success');
                         setTimeout(() => {
                             codeBlock.classList.remove('copy-success');
-                        }, 700); // Убираем класс через 0.7 секунды
-
-                        console.log('Команда скопирована:', codeBlock.innerText);
+                        }, 700);
                     } catch (err) {
-                        console.error('Не удалось скопировать:', err);
-                        alert('Ошибка при копировании. Попробуйте выделить и скопировать вручную.');
+                        alert('Ошибка копирования. Используйте Ctrl+C');
                     }
                 });
             });
         });
+
+        // 2. Движение стеклянного курсора
+        const cursor = document.querySelector('.glass-cursor');
+        
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        document.addEventListener('mousedown', () => cursor.classList.add('click'));
+        document.addEventListener('mouseup', () => cursor.classList.remove('click'));
+
+        // Скрытие курсора при выходе из окна
+        document.addEventListener('mouseleave', () => cursor.style.opacity = '0');
+        document.addEventListener('mouseenter', () => cursor.style.opacity = '1');
     </script>
 </body>
 </html>
