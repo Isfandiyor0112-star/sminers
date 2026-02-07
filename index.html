@@ -132,71 +132,83 @@
         setTimeout(() => el.classList.remove('copy-success'), 600);
     }
 
-    async function fetchAllData() {
-        const logBox = document.getElementById('logBox');
-        const ts = new Date().getTime(); 
+ async function fetchAllData() {
+    const logBox = document.getElementById('logBox');
+    const ts = new Date().getTime(); 
+
+    try {
+        const [resStats, resIdent] = await Promise.all([
+            fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`).then(r => r.json()),
+            fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`).then(r => r.json())
+        ]);
 
         try {
-            const [resStats, resIdent] = await Promise.all([
-                fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`).then(r => r.json()),
-                fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`).then(r => r.json())
-            ]);
-
-            try {
-                const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
-                if (resPrice.ok) {
-                    const priceData = await resPrice.json();
-                    lastKnownPrice = priceData.monero.usd;
-                }
-            } catch (e) { console.warn("Используем кэшированный курс"); }
-
-            // Исправленные переменные
-            const xmrBalance = resStats.amtDue / 1000000000000;
-            const currentUzsRate = 12950; 
-
-            document.getElementById('hashrate').innerText = (resStats.hash2 / 1000).toFixed(2) + ' KH/s';
-            document.getElementById('workers').innerText = resIdent.length;
-            document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
-            document.getElementById('balance_usd').innerText = '$' + (xmrBalance * lastKnownPrice).toFixed(2);
-            document.getElementById('balance_uzs').innerText = Math.round(xmrBalance * lastKnownPrice * currentUzsRate).toLocaleString() + ' UZS';
-
-            logBox.innerHTML = '';
-            if (!resIdent || resIdent.length === 0) {
-                logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.5; text-align:center;">Нет активных воркеров</div>';
-            } else {
-                resIdent.forEach(pc => {
-                    const name = pc.identifier || pc.id || (typeof pc === 'string' ? pc : 'Unknown PC');
-                    const rawSpeed = pc.hash2 || pc.h || 0;
-                    
-                    let displaySpeed = rawSpeed >= 1000 ? (rawSpeed / 1000).toFixed(2) : Math.round(rawSpeed);
-                    let unit = rawSpeed >= 1000 ? 'KH/s' : 'H/s';
-
-                    const pcCard = document.createElement('div');
-                    pcCard.style.cssText = `
-                        background: var(--glass-bg);
-                        border: 1px solid ${rawSpeed > 0 ? 'var(--glass-border)' : 'rgba(239, 68, 68, 0.3)'};
-                        padding: 15px;
-                        border-radius: 12px;
-                        text-align: center;
-                        position: relative;
-                    `;
-
-                    pcCard.innerHTML = `
-                        <div style="font-size: 0.65rem; opacity: 0.5; text-transform: uppercase;">Воркер</div>
-                        <div style="font-weight: bold; color: #fff; margin: 5px 0 10px 0;">${name}</div>
-                        <div style="color: ${rawSpeed > 0 ? 'var(--accent-color)' : '#ef4444'}; font-size: 1.2rem; font-weight: 800;">
-                            ${displaySpeed} <span style="font-size: 0.7rem;">${unit}</span>
-                        </div>
-                        <div style="height: 3px; width: 100%; background: ${rawSpeed > 0 ? 'var(--accent-color)' : '#ef4444'}; position: absolute; bottom: 0; left: 0; border-radius: 0 0 12px 12px;"></div>
-                    `;
-                    logBox.appendChild(pcCard);
-                });
+            const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
+            if (resPrice.ok) {
+                const priceData = await resPrice.json();
+                lastKnownPrice = priceData.monero.usd;
             }
-        } catch (e) {
-            console.error(e);
-            logBox.innerHTML = '<div style="grid-column: 1/-1; color:red; text-align:center;">Ошибка API: Пул недоступен</div>';
+        } catch (e) { console.warn("Используем кэшированный курс"); }
+
+        const xmrBalance = resStats.amtDue / 1000000000000;
+        const currentUzsRate = 12950; 
+
+        document.getElementById('hashrate').innerText = (resStats.hash2 / 1000).toFixed(2) + ' KH/s';
+        document.getElementById('workers').innerText = resIdent.length;
+        document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
+        document.getElementById('balance_usd').innerText = '$' + (xmrBalance * lastKnownPrice).toFixed(2);
+        document.getElementById('balance_uzs').innerText = Math.round(xmrBalance * lastKnownPrice * currentUzsRate).toLocaleString() + ' UZS';
+
+        logBox.innerHTML = '';
+        if (!resIdent || resIdent.length === 0) {
+            logBox.innerHTML = '<div style="grid-column: 1/-1; opacity:0.5; text-align:center;">Нет активных воркеров</div>';
+        } else {
+            resIdent.forEach(pc => {
+                const name = pc.identifier || pc.id || (typeof pc === 'string' ? pc : 'Unknown PC');
+                
+                // УЛУЧШЕННЫЙ ПОИСК СКОРОСТИ (проверяем все поля API)
+                const rawSpeed = pc.hash2 || pc.hash || pc.h || pc.lastHash || 0;
+                
+                let displaySpeed, unit;
+                if (rawSpeed >= 1000) {
+                    displaySpeed = (rawSpeed / 1000).toFixed(2);
+                    unit = 'KH/s';
+                } else {
+                    displaySpeed = Math.round(rawSpeed).toLocaleString();
+                    unit = 'H/s';
+                }
+
+                // Цвет карточки: если скорость есть - синий, если 0 - красный
+                const isOnline = rawSpeed > 0;
+                const cardColor = isOnline ? 'var(--accent-color)' : '#ef4444';
+
+                const pcCard = document.createElement('div');
+                pcCard.style.cssText = `
+                    background: var(--glass-bg);
+                    border: 1px solid ${isOnline ? 'var(--glass-border)' : 'rgba(239, 68, 68, 0.2)'};
+                    padding: 15px;
+                    border-radius: 12px;
+                    text-align: center;
+                    position: relative;
+                    transition: 0.3s;
+                `;
+
+                pcCard.innerHTML = `
+                    <div style="font-size: 0.65rem; opacity: 0.5; text-transform: uppercase;">Воркер</div>
+                    <div style="font-weight: bold; color: #fff; margin: 5px 0 10px 0; overflow: hidden; text-overflow: ellipsis;">${name}</div>
+                    <div style="color: ${cardColor}; font-size: 1.2rem; font-weight: 800;">
+                        ${displaySpeed} <span style="font-size: 0.7rem;">${unit}</span>
+                    </div>
+                    <div style="height: 3px; width: 100%; background: ${cardColor}; position: absolute; bottom: 0; left: 0; border-radius: 0 0 12px 12px; opacity: ${isOnline ? '0.6' : '1'}"></div>
+                `;
+                logBox.appendChild(pcCard);
+            });
         }
+    } catch (e) {
+        console.error(e);
+        logBox.innerHTML = '<div style="grid-column: 1/-1; color:red; text-align:center;">Ошибка API: Пул недоступен</div>';
     }
+}
 
     const cursor = document.querySelector('.glass-cursor');
     document.addEventListener('mousemove', e => {
