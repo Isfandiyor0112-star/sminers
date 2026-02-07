@@ -135,56 +135,60 @@ async function fetchAllData() {
         const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`);
         const stats = await resStats.json();
         
-        // 2. Идентификаторы (Список конкретных ПК)
+        // 2. Идентификаторы (Список имен ПК)
         const resIdent = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`);
         const identifiers = await resIdent.json();
 
-        // 3. Курс XMR через CoinGecko
+        // 3. Курс XMR
         const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
         const priceData = await resPrice.json();
         const xmrPrice = priceData.monero.usd;
 
-        // Расчеты для Узбекистана
+        // Расчеты
         const xmrBalance = stats.amtDue / 1000000000000;
         const usdBalance = xmrBalance * xmrPrice;
-        const uzsBalance = usdBalance * 12950; // Актуальный курс сума
+        const uzsBalance = usdBalance * 12950; 
 
-        // Обновляем верхние индикаторы
+        // Обновляем верхние цифры
         document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
         document.getElementById('workers').innerText = identifiers.length;
         document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
         document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
         document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
 
-        // Рендерим список ПК
         logBox.innerHTML = '';
         if (!identifiers || identifiers.length === 0) {
-            logBox.innerHTML = '<div style="opacity:0.5">Нет активных ПК в сети...</div>';
+            logBox.innerHTML = '<div style="opacity:0.5">Нет активных ПК...</div>';
         } else {
             identifiers.forEach(pc => {
-                // ПРОВЕРКА КЛЮЧЕЙ: Пробуем все варианты, которые использует MoneroOcean
-                const name = pc.identifier || pc.id || pc.name || 'Безымянный ПК';
-                
-                // Берем хешрейт (hash2 - это эффективный, h - текущий)
-                const speedRaw = pc.hash2 || pc.h || pc.hash || 0;
-                const speed = Math.round(speedRaw);
-                
-                // Цвет статуса: если скорость > 0, значит онлайн
-                const statusColor = speed > 0 ? '#4ade80' : '#ff4444';
+                let name, speed;
 
+                // ОБРАБОТКА ДАННЫХ ПУЛА:
+                if (typeof pc === 'string') {
+                    // Если API прислал просто массив строк (имена)
+                    name = pc;
+                    speed = 'Online'; // Точную скорость для строк без доп. запроса не узнать
+                } else {
+                    // Если API прислал объекты
+                    name = pc.identifier || pc.id || pc.name || 'Безымянный ПК';
+                    const speedRaw = pc.hash2 || pc.h || pc.hash || 0;
+                    speed = Math.round(speedRaw) + ' H/s';
+                }
+                
                 const line = document.createElement('div');
-                line.style.cssText = "margin-bottom: 10px; padding: 5px; border-bottom: 1px solid rgba(255,255,255,0.05);";
+                line.style.cssText = "margin-bottom: 8px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 3px solid var(--accent-color);";
                 line.innerHTML = `
-                    <span style="color:${statusColor}">●</span> 
-                    ПК: <span style="color:#fff; font-weight:bold">${name}</span> 
-                    — <span style="color:var(--accent-color)">${speed} H/s</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span><b style="color:#fff">${name}</b></span>
+                        <span style="color:var(--accent-color); font-family:monospace;">${speed}</span>
+                    </div>
                 `;
                 logBox.appendChild(line);
             });
         }
     } catch (e) {
-        console.error("Критическая ошибка Dashboard:", e);
-        logBox.innerHTML = '<span style="color:#ef4444">Ошибка связи с пулом. Проверьте Wallet.</span>';
+        console.error("Dashboard Error:", e);
+        logBox.innerHTML = '<span style="color:#ef4444">Ошибка обновления. Проверьте соединение.</span>';
     }
 }
 
