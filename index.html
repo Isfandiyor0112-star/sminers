@@ -152,7 +152,6 @@
 
     <div class="footer">Imamaliev Engine • Angren • v15.6.0</div>
 </div>
-
 <script>
     const WALLET = '429bPnUKuYBQQVHoap1jKTWwiPfGuKAqL7ggbTFFZdbA3LyKScc6EnP9fTVeig7jNqaF7CFhUk5eCU8S5d85gWqU6Zt6bhA';
     let xmrPrice = 168.0, uzsRate = 13000.0;
@@ -214,19 +213,30 @@
             xmrPrice = resRates.monero.usd;
             const payHash = resStats.hash2;
             const curBal = resStats.amtDue / 1e12;
+            const targetXMR = 0.01;
 
             document.getElementById('hashrate').innerText = (payHash / 1000).toFixed(2) + ' KH/s';
             document.getElementById('balance_xmr').innerText = curBal.toFixed(6);
             document.getElementById('balance_uzs').innerText = Math.round(curBal * xmrPrice * uzsRate).toLocaleString() + ' UZS';
 
-            // ТОЧНЫЙ ПРОГНОЗ
-            const dailyXMR = (payHash / 17400) * 0.00131; 
+            // УМНЫЙ ПРОГНОЗ (теперь считает от реального хеша, а не занижает)
+            const dailyXMR = (payHash / 1000) * (0.00131 / 17.4); 
             const dUZS = dailyXMR * xmrPrice * uzsRate;
 
             document.getElementById('p-hour').innerText = Math.round(dUZS / 24).toLocaleString() + ' UZS';
             document.getElementById('p-day').innerText = Math.round(dUZS).toLocaleString() + ' UZS';
             document.getElementById('p-week').innerText = Math.round(dUZS * 7).toLocaleString() + ' UZS';
             document.getElementById('p-month').innerText = Math.round(dUZS * 30).toLocaleString() + ' UZS';
+
+            // РАСЧЕТ ВРЕМЕНИ ДО 0.01 XMR
+            const remaining = targetXMR - curBal;
+            let timeInfo = "";
+            if (remaining > 0 && dailyXMR > 0) {
+                const daysLeft = remaining / dailyXMR;
+                const d = Math.floor(daysLeft);
+                const h = Math.round((daysLeft - d) * 24);
+                timeInfo = `<div style="font-size:0.65rem; color:var(--uzs-color); margin-top:5px; border-top:1px solid var(--glass-border); padding-top:5px;">🎯 До выплаты 0.01: <b>${d}д. ${h}ч.</b></div>`;
+            }
 
             hashHistory.push(payHash / 1000);
             hashHistory.shift();
@@ -239,6 +249,7 @@
                         <span style="color:var(--money-color); font-size:0.65rem;">● Online</span>
                     </div>
                     <div style="font-size:0.7rem; opacity:0.5; margin-top:8px;">Shares: ${Math.round(resStats.validShares).toLocaleString()}</div>
+                    ${timeInfo}
                 </div>
             `;
         } catch (e) { console.log("Update Error"); }
@@ -261,5 +272,7 @@
 
     setInterval(updateData, 30000);
 </script>
+
+
 </body>
 </html>
